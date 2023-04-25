@@ -1,48 +1,20 @@
 """
 This is a automated python based SLURM job submitting pipeline for alphafold prediction.
+
+Author:     D. Fastus
 """
 
 import subprocess
 import time
-import glob
+import sys
 import os
 
-
-# scan current working directory for fasta file to be used for AFpred
-fasta_files = glob.glob(os.path.join(os.getcwd(), '*.fasta'))
-if fasta_files:
-    fasta_path = fasta_files[0]
-    fasta_name = os.path.splitext(os.path.basename(fasta_path))[0]
-    print(f"Found a fasta file: {fasta_path}")
-else:
-    print("No fasta files found in the current working directory.")
-    exit()
-    
-
-# optional parse the fasta file for protein name, check structure
-# possibility to estimate the prediction time from the residues
-def protParser(fasta_file): 
-    try:
-        with open(fasta_file,mode="r") as file:
-            for line in file:
-                if line.startswith('>'):
-                    line = line.strip()
-                    protein_name = line[1:].split()[0]
-                else:
-                    num_residue = 0
-                    for residue in line:
-                      num_residue += 1
-    except:
-        pass
-            
-    return fasta_name, num_residue
-
 # create sbatch file for server
-def sbatch_AFpred(jobName = f"AFpred_{fasta_name}", partition = "v100", mem = 0, time = "01-00:00"):
+def sbatch_AFpred(jobName, fastaName, fastaPath, partition = "v100", mem = 0, time = "01-00:00"):
     script = "#!/bin/bash\n"
 
     # setting up the cluster environment or job specifications
-    script += f"#SBATCH --job-name=AF_{fasta_name}\n"
+    script += f"#SBATCH --job-name=AF_{fastaName}\n"
 
     if partition is not None:
         script += f"#SBATCH --partition={partition}\n"
@@ -65,12 +37,12 @@ def sbatch_AFpred(jobName = f"AFpred_{fasta_name}", partition = "v100", mem = 0,
     script += f"mkdir --parents {jobName+'_output'}\n\n"
 
     # slurmtmp
-    script += f"cp {fasta_path} /local/slurmtmp.$SLURM_JOBID\n"
+    script += f"cp {fastaPath} /local/slurmtmp.$SLURM_JOBID\n"
     script += f"cd /local/slurmtmp.$SLURM_JOBID\n\n"
 
     # run alphafold
     script += f"""alphafold \\
-                --fasta_paths={fasta_name+'.fasta'} \\
+                --fasta_paths={fastaName+'.fasta'} \\
                 --max_template_date=2020-05-14 \\
                 --output_dir=$CWD/alf_output \\
                 --data_dir=$ALPHAFOLD_DATA_DIR
@@ -81,43 +53,37 @@ def sbatch_AFpred(jobName = f"AFpred_{fasta_name}", partition = "v100", mem = 0,
     with open(shellFile,"w") as file:
         file.write(script)
         file.close()
-    
-    # make the sbatch file executable
-    st = os.stat(shellFile)
-    os.chmod(shellFile, st.st_mode | 0o755)
 
 # make a continuos check if the job is finished on the server
 def monitor_job(job_id):
     start_time = time.time()
     while True:
         # Run the squeue command and capture the output
-        squeue_output = subprocess.run(f"sacct -j {job_id}", shell=True)
+        squeue_output = subprocess.run(f"sacct -j {job_id}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        squeue_output = squeue_output.stdout.decode("ascii").rstrip().split()
+
+        print("Job is still running...")
+        time.sleep(20)  # Wait for 5 minutes before checking again
 
         # Check if the job ID is still present in the output
-        if "RUNNING" or "WAITING" in squeue_output:
-            print("Job is still running...")
-            time.sleep(300)  # Wait for 5 minutes before checking again
-
-        else:
-            end_time = time.time()
-            total_time = end_time - start_time
-
-            with open('job.log', 'a') as f:
-                f.write(f"Job {job_id} finished in {total_time} seconds\n")
-
-            print(f"Job {job_id} has finished in {total_time} seconds")
+        if "FAILED" in squeue_output:
+            print(f"The job {job_id} failed to run")
+            break
+        elif "COMPLETED" in squeue_output:
+            print(f"The job {job_id} is completed")
             break
 
-# since the sbatch file is already running this function is unneccessary, need to be checked
-def run(shellFile):
-    SlurmCommandLine = f"sbatch {shellFile}"
+    end_time = time.time()
+    total_time = end_time - start_time
 
-    # execute the sbatch script
-    subprocess.run(SlurmCommandLine, shell=True)
+    with open('job.log', 'a') as f:
+        f.write(f"Job {job_id} finished in {total_time} seconds\n")
+
+    print(f"Job {job_id} has finished in {total_time} seconds")
+
 
 # check if the output are complete and have the right format
 def check_out(out_dir):
-    
     # List of files to check for
     files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 'unrelaxed_model_1.pdb']
 
@@ -126,25 +92,49 @@ def check_out(out_dir):
         file_path = os.path.join(out_dir, file)
 
         if not os.path.isfile(file_path):
-            os.makedirs("empty_folder")
             print(f"The files are not successfully generated, the {file} is missing...")
             return False
         
     print(f"The files are successfully generated in {out_dir}")
     return True
 
-# get the name for the job name 
-fasta_name, num_residues = protParser(fasta_path)
+def main(args):
+    if len(args) < 2 or len(args) == 0:
+        print("Please provide only one fasta file")
+        sys.exit(1)
 
-# create the sbatch file
-sbatch_AFpred()
+    # che if it's a fasta file and get the name for the job
+    try:
+        with open(args,mode="r") as file:
+            line = file.readline()
 
-# run the sbatch file or SLURM JOB
-# run(f"AFpred_{fasta_name}_slurm.sh")
+            if not line.startswith('>'):
+                print("The input is not a fasta file!")
+                sys.exit(1)
+            else:
+                line = line.strip()
+                fasta_name = line[1:].split("|")[0]
 
-# inform the user about the status
-CommandLine = f"sbatch --parsable AFpred_{fasta_name}_slurm.sh"
-job_id = subprocess.run(CommandLine, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-monitor_job(job_id)
+    except FileNotFoundError:
+        print(f"{args} can not be open or does not exist!")
+        sys.exit(1)
+    
+    # create the sbatch file
+    sbatch_AFpred(jobName=f"AFpred_{fasta_name}", fastaName=fasta_name, fastaPath=os.getcwd()+args)
 
-check_out(f"alf_output/7QRZ")
+    # inform the user about the status by getting the jobID
+    CommandLine = f"sbatch --parsable AFpred_{fasta_name}_slurm.sh"
+    job_id = subprocess.run(CommandLine, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    job_id = job_id.stdout.decode("ascii").rstrip().split()[-1]
+
+    try:
+        int(job_id)
+    except:
+        print("Job was not succesfull")
+
+    monitor_job(job_id)
+
+    check_out(f"alf_output/{fasta_name}")
+
+if __name__ == "__main__":
+    main(sys.argv[1])
