@@ -9,5 +9,5 @@ The first script creates a SLURM job and submits it to the MAX IV cluster. A fas
 
 To start the prediction run:
 ```
-python 1_AF_prediction.py
+python 1_AF_prediction.py <fasta_file>
 ```
