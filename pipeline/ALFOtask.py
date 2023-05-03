@@ -9,10 +9,12 @@ Author:     D. Fastus
 from pathlib import Path
 import subprocess
 import logging
+import json
 import time
 import sys
 import os
 
+# import module to monitor the SLURM jobs
 from utils import UtilsMonitor
 
 # build a logger for the SLURM script
@@ -80,7 +82,8 @@ class ALFOpred():
     # check if the output are complete and have the right format
     def check_out(self, out_dir):
         # List of files to check for
-        files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 'unrelaxed_model_1.pdb']
+        files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 
+                          'unrelaxed_model_1.pdb', "ranking_debug.json"]
 
         # Check if all files are present in the directory
         for file in files_to_check:
@@ -127,7 +130,7 @@ class ALFOpred():
         time.sleep(2)
         UtilsMonitor.monitor_job(job_id)
 
-        ALFOpred.check_out(f"alf_output/{fasta_name}")
+        ALFOpred.check_out(f"alf_output/{job_id}/{fasta_name}")
 
 class mrALFO():
     """
@@ -137,10 +140,32 @@ class mrALFO():
     def __init__(self) -> None:
         pass
 
-    def choose_model(self, indir):
+    def choose_model(self, infile):
+        try:
+            file = open(infile)
+            ranking = json.load(file)
+
+            best_model = ranking["order"][0]
+            best_model_file = f"ranked_{int(best_model[-1])-1}.pdb"
+
+            file.close()
+
+            logger.info(f"The best predicted model by AlphaFold is {best_model}, therefore the file {best_model_file} will be used as a search model for molecular replacement!")
+            return best_model_file
+
+        except Exception as e:
+            logger.error(f"The produced {infile} file in the AlphaFold file doesn't exist", exc_info=True)
+            sys.exit(1)
+
+    def process_predict(self, AFpdbModel):
+        pass
+    
+    # DIMPLE - automated refinement and ligand screening
+    def runDIMPLE(self, processedModel):
         pass
 
-
+    def runPhaser():
+        pass
 
 if __name__ == "__main__":
     # check for positional argument as fasta file
@@ -153,5 +178,8 @@ if __name__ == "__main__":
         logger.error("Path to fasta file does not exist")
         sys.exit("Path to fasta file does not exist")
 
-    ALFOpred = ALFOpred()
-    ALFOpred.run(fastapath)
+    #ALFOpred = ALFOpred()
+    #ALFOpred.run(fastapath)
+
+    mrALFO = mrALFO()
+    mrALFO.choose_model("/data/staff/biomax/domfas/pipeline/alf_output/1384504/7QRZ/ranking_debug.json")
