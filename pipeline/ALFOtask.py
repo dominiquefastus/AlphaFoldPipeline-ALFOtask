@@ -9,12 +9,16 @@ Author:     D. Fastus
 from pathlib import Path
 import subprocess
 import logging
+import shutil
 import json
 import time
 import sys
 import os
 
 # import module to monitor the SLURM jobs
+# import module to check the output
+
+# sys.insert
 from utils import UtilsMonitor
 
 # build a logger for the SLURM script
@@ -82,8 +86,7 @@ class ALFOpred():
     # check if the output are complete and have the right format
     def check_out(self, out_dir):
         # List of files to check for
-        files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 
-                          'unrelaxed_model_1.pdb', "ranking_debug.json"]
+        files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 'unrelaxed_model_1.pdb', "ranking_debug.json"]
 
         # Check if all files are present in the directory
         for file in files_to_check:
@@ -124,13 +127,106 @@ class ALFOpred():
         try:
             int(job_id)
         except:
-            logger.error("Job was not succesfull")
+            logger.error("Prediction was not succesfull")
 
         print(f"Job ID: {job_id}")
         time.sleep(2)
-        UtilsMonitor.monitor_job(job_id)
 
-        ALFOpred.check_out(f"alf_output/{job_id}/{fasta_name}")
+        UtilsMonitor.monitor_job(job_id, "Predicting")
+        
+  
+        # move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        # for file in move_file:
+            # shutil.move(file, f"alf_output/{job_id}")
+
+        output_dir = f"alf_output/{job_id}/{fasta_name}"
+        ALFOpred.check_out(output_dir)
+
+        logger.info(f"The prediction was successful, starting processing of model...\n\n")
+
+        return output_dir, fasta_name
+
+
+class procALFO():
+    """
+    AlphaFold predicted model selection and preprocessing
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def choose_model(self, infile):
+        try:
+            json_file = os.path.join(infile, "ranking_debug.json")
+            file = open(json_file)
+            ranking = json.load(file)
+
+            best_model = ranking["order"][0]
+            plddts = ranking["plddts"][best_model]
+            best_model_file = f"ranked_{int(best_model[-1])-1}.pdb"
+
+            file.close()
+
+            logger.info(f"The best predicted model by AlphaFold is {best_model} with a plddts of {plddts}")
+            logger.info(f"The file {best_model_file} will be used as a search model for molecular replacement!")
+
+        except Exception as e:
+            logger.error(f"The produced {infile} file in the AlphaFold file doesn't exist", exc_info=True)
+            sys.exit(1)
+
+        # AFpdbModel_path = infile = os.path.join(infile, f"{best_model_file}")
+        return best_model_file
+
+    def process_predict(self, jobName, AFpdbModel_path, output_dir):
+        script = "#!/usr/bin/env bash\n"
+
+        # setting up the cluster environment or job specifications
+        script += "#SBATCH --job-name=AF_processing\n"
+        script += "#SBATCH --mem=0\n"
+        script += "#SBATCH --time=01-00:00\n"
+
+        script += "#SBATCH --output=alphafold_%j.out\n"
+        script += "#SBATCH --error=alphafold_%j.err\n\n"
+
+         # alphafold commands and requirements
+        script += "module purge\n"
+        script += "module add gopresto Phenix/1.20.1-4487-Rosetta-3.10-PReSTO-8.0\n\n"
+
+         # slurmtmp
+        # script += f"cp {AFpdbModel_path} {output_dir}\n"
+        script += f"cd {output_dir}\n"
+
+        # run phenix processing predicted model tool
+        # Replace values in B-factor field with estimated B values.
+        # Optionally remove low-confidence residues and split into domains.
+        script += f"phenix.process_predicted_model {AFpdbModel_path} "
+
+        shellFile = f"{jobName}_slurm.sh"
+
+        with open(shellFile,"w") as file:
+            file.write(script)
+            file.close()
+
+        # inform the user about the status by getting the jobID
+        CommandLine = f"sbatch {jobName}_slurm.sh"
+        job_id = subprocess.run(CommandLine, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        job_id = job_id.stdout.decode("ascii").rstrip().split()[-1]
+
+        try:
+            int(job_id)
+        except:
+            logger.error("Processing was not succesfull")
+
+        print(f"Job ID: {job_id}")
+        time.sleep(2)
+        UtilsMonitor.monitor_job(job_id, "Processing")
+
+        # move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        # for file in move_file:
+            # shutil.move(file, f"alf_output/{job_id}")
+
+        logger.info("Processing was succesful, starting molecular replacement...\n\n")
+
 
 class mrALFO():
     """
@@ -140,32 +236,60 @@ class mrALFO():
     def __init__(self) -> None:
         pass
 
-    def choose_model(self, infile):
-        try:
-            file = open(infile)
-            ranking = json.load(file)
+    # DIMPLE - automated refinement and ligand screening
+    def runDIMPLE(self, jobName, reflectionData_file, processedModel_file, output_dir):
+        script = "#!/usr/bin/env bash\n"
 
-            best_model = ranking["order"][0]
-            best_model_file = f"ranked_{int(best_model[-1])-1}.pdb"
+        # setting up the cluster environment or job specifications
+        script += "#SBATCH --job-name=AF_processing\n"
+        script += "#SBATCH --mem=0\n"
+        script += "#SBATCH --time=01-00:00\n"
 
+        script += "#SBATCH --output=alphafold_%j.out\n"
+        script += "#SBATCH --error=alphafold_%j.err\n\n"
+
+        # alphafold commands and requirements
+        script += "module purge\n"
+        script += "module add gopresto CCP4/7.0.078-SHELX-ARP-8.0-17-PReSTO\n\n"
+
+            # slurmtmp
+        script += f"cp {reflectionData_file} {output_dir}\n"
+        script += f"cd {output_dir}\n\n"
+
+        # run phenix processing predicted model tool
+        # Replace values in B-factor field with estimated B values.
+        # Optionally remove low-confidence residues and split into domains.
+        script += f"dimple {processedModel_file} {reflectionData_file} {output_dir}/dimpleMR"
+
+        shellFile = f"{jobName}_slurm.sh"
+
+        with open(shellFile,"w") as file:
+            file.write(script)
             file.close()
 
-            logger.info(f"The best predicted model by AlphaFold is {best_model}, therefore the file {best_model_file} will be used as a search model for molecular replacement!")
-            return best_model_file
+        # inform the user about the status by getting the jobID
+        CommandLine = f"sbatch {jobName}_slurm.sh"
+        job_id = subprocess.run(CommandLine, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        job_id = job_id.stdout.decode("ascii").rstrip().split()[-1]
 
-        except Exception as e:
-            logger.error(f"The produced {infile} file in the AlphaFold file doesn't exist", exc_info=True)
-            sys.exit(1)
+        try:
+            int(job_id)
+        except:
+            logger.error("Molecular replacement with DIMPLE was not succesfull")
 
-    def process_predict(self, AFpdbModel):
-        pass
-    
-    # DIMPLE - automated refinement and ligand screening
-    def runDIMPLE(self, processedModel):
-        pass
+        print(f"Job ID: {job_id}")
+        time.sleep(2)
+        UtilsMonitor.monitor_job(job_id, "DIMPLE MR")
 
-    def runPhaser():
-        pass
+        # move_file = ["job.log", f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        # for file in move_file:
+            # shutil.move(file, f"alf_output/{job_id}")
+
+        logger.info("Molecular replacement was successfull, all done!")
+
+        def runPhaser(self):
+            pass
+
 
 if __name__ == "__main__":
     # check for positional argument as fasta file
@@ -178,8 +302,25 @@ if __name__ == "__main__":
         logger.error("Path to fasta file does not exist")
         sys.exit("Path to fasta file does not exist")
 
-    #ALFOpred = ALFOpred()
-    #ALFOpred.run(fastapath)
+    elif len(sys.argv) < 3:
+        logger.error("Missing mtz file..")
+        sys.exit("Error missing argument! Please provide a mtz file")
+    mtz_file = sys.argv[2]
+    mtzPath = Path(mtz_file)
+    if not mtzPath.is_file():
+        logger.error("Path to mtz file does not exist")
+        sys.exit("Path to mtz file does not exist")
 
+    # predict the model as a slurm job
+    ALFOpred = ALFOpred()
+    output_dir, fasta_name = ALFOpred.run(fastapath)
+
+    # choose the best model and process it
+    procALFO = procALFO()
+    AFpdbModel_path = procALFO.choose_model(output_dir)
+    procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+
+    # use dimple to do molecular replacement
+    processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
     mrALFO = mrALFO()
-    mrALFO.choose_model("/data/staff/biomax/domfas/pipeline/alf_output/1384504/7QRZ/ranking_debug.json")
+    mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, processedModel_file=processedModel_file, output_dir=output_dir)
