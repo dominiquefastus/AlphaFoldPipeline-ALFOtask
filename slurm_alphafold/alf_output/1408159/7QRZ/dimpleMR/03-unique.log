@@ -1,0 +1,100 @@
+<!--SUMMARY_BEGIN-->
+ 
+ ###############################################################
+ ###############################################################
+ ###############################################################
+ ### CCP4 7.0.078: UNIQUE           version 7.0.078 :         ##
+ ###############################################################
+ User: unknown  Run date: 29/ 5/2023 Run time: 11:01:39 
+
+
+ Please reference: Collaborative Computational Project, Number 4. 2011.
+ "Overview of the CCP4 suite and current developments". Acta Cryst. D67, 235-242.
+ as well as any specific reference in the program write-up.
+
+<!--SUMMARY_END-->
+ Data line--- cell 54.114 61.064 119.673 90 90 90
+ Data line--- symmetry 'P 2 2 2'
+ Data line--- resolution 1.608
+ Data line--- labout F=F_UNIQUE SIGF=SIGF_UNIQUE
+ Data line--- end
+Reciprocal space symmetry: 
+Space group: "P 2 2 2" Point group: "PG222" Laue group: "mmm" 
+Reference asymmetric unit: "h>=0 and k>=0 and l>=0" 
+  (change of basis may be applied) 
+
+ Spacegroup 16 "P 2 2 2" 
+ Original indices for reflection hkl with symmetry number ISYM 
+
+                              Bijvoet positive 
+       ISYM              ISYM              ISYM              ISYM              
+  ISYM   1  +h,+k,+l       3  -h,-k,+l       5  +h,-k,-l       7  -h,+k,-l    
+
+                              Bijvoet negative 
+       ISYM              ISYM              ISYM              ISYM              
+  ISYM   2  -h,-k,-l       4  +h,+k,-l       6  -h,+k,+l       8  +h,-k,+l    
+
+ Maximum and minimum Bragg spacings     1.608 10000.000 Angstroms
+
+
+ Limits on H,K,L..   0 to  33      0 to  37      0 to  74
+
+
+ WRITTEN OUTPUT MTZ FILE 
+ Logical Name: HKLOUT   Filename: unique.mtz 
+
+ * Title:
+
+ 
+
+ * Base dataset:
+
+        0 HKL_base
+          HKL_base
+          HKL_base
+
+ * Number of Datasets = 0
+
+ * Dataset ID, project/crystal/dataset names, cell dimensions, wavelength:
+
+
+ * Number of Columns = 5
+
+ * Number of Reflections = 52428
+
+ * Missing value set to NaN in input mtz file
+
+ * Column Labels :
+
+ H K L F_UNIQUE SIGF_UNIQUE
+
+ * Column Types :
+
+ H H H F Q
+
+ * Associated datasets :
+
+ 0 0 0 0 0
+
+ * Cell Dimensions : (obsolete - refer to dataset cell dimensions above)
+
+   54.1140   61.0640  119.6730   90.0000   90.0000   90.0000 
+
+ *  Resolution Range :
+
+    0.00007    0.38675     (    119.673 -      1.608 A )
+
+ * Sort Order :
+
+      1     2     3     0     0
+
+ * Space group = 'P 2 2 2' (number     16)
+
+
+
+      96900 reflections tested
+      52428 reflections within resolution limits written to output file
+<!--SUMMARY_BEGIN-->
+ UNIQUE:  Normal Termination
+Times: User:       0.1s System:    0.0s Elapsed:     0:01  
+<!--SUMMARY_END-->
