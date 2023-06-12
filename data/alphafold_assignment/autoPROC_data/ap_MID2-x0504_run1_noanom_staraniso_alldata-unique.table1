@@ -1,0 +1,49 @@
+ 
+  Spacegroup name          P212121
+  Unit cell parameters     54.114 61.064 119.673 90.0 90.0 90.0
+  Wavelength               0.97625 A
+ 
+  Diffraction limits & principal axes of ellipsoid fitted to diffraction cut-off surface:
+    1.999         1.0000   0.0000   0.0000       _a_*
+    1.845         0.0000   1.0000   0.0000       _b_*
+    1.601         0.0000   0.0000   1.0000       _c_*
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of diffraction limits:
+  -----------------------------------------------------
+     local(I/sigI)  >=    1.20
+
+  Per-reflection cut-off      Operational Resolution                
+  ----------------------------------------------------------------- 
+     I/sigma(I) >= 2.0    :   2.0441 A   for      25836 reflections
+     I/sigma(I) >= 1.0    :   1.9713 A   for      28698 reflections
+     I/sigma(I) >= 0.0    :   1.9074 A   for      31613 reflections
+     all                  :   1.8713 A   for      33460 reflections
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.794
+     High resolution limit                      1.609       5.240       1.609
+
+
+     Rmerge  (all I+ & I-)                      0.055       0.028       1.381
+     Rmerge  (within I+/I-)                     0.055       0.028       1.339
+     Rmeas   (all I+ & I-)                      0.057       0.030       1.443
+     Rmeas   (within I+/I-)                     0.059       0.030       1.459
+     Rpim    (all I+ & I-)                      0.016       0.008       0.414
+     Rpim    (within I+/I-)                     0.022       0.011       0.576
+     Total number of observations              443158       20709       20201
+     Total number unique                        33460        1672        1674
+     Mean(I)/sd(I)                               20.8        66.2         1.8
+     Completeness (spherical)                    64.0        99.9        11.6
+     Completeness (ellipsoidal)                  90.0        99.9        68.7
+     Multiplicity                                13.2        12.4        12.1
+     CC(1/2)                                    1.000       0.999       0.750
+
+
+     Anomalous completeness (spherical)          62.6       100.0        10.6
+     Anomalous completeness (ellipsoidal)        89.5       100.0        66.5
+     Anomalous multiplicity                       7.0         7.2         6.4
+     CC(ano)                                   -0.176      -0.085      -0.023
+     |DANO|/sd(DANO)                            0.719       0.739       0.682

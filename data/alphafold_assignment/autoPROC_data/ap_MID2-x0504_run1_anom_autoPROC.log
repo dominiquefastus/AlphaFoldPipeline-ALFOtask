@@ -1,0 +1,823 @@
+
+ ##############################################################################
+ # This software is licenced to : Lund University, MAX IV 
+ ##############################################################################
+[1m
+ ##############################################################################
+ ##   Processing of diffraction images
+ ##############################################################################
+
+      Copyright (C) 2004-2021 by Global Phasing Limited
+ 
+                All rights reserved.
+ 
+                This software is proprietary to and embodies the confidential
+                technology of Global Phasing Limited (GPhL). Possession, use,
+                duplication or dissemination of the software is authorised
+                only pursuant to a valid written licence from GPhL.
+
+      Version:  1.0.5  <2021-07-16 03:10:21>
+
+ ------------------------------------------------------------------------------
+
+   Developers:  (2004-2005) G. Bricogne, C. Flensburg, W. Paciorek, O. Smart, C. Vonrhein
+                (2006-2008) G. Bricogne, C. Flensburg, P. Keller, W. Paciorek, O. Smart, T. Womack, C. Vonrhein
+                (2009-2012) G. Bricogne, C. Flensburg, P. Keller, W. Paciorek, A. Sharff, O. Smart, T. Womack, C. Vonrhein
+                (2013-2015) G. Bricogne, C. Flensburg, P. Keller, W. Paciorek, A. Sharff, O. Smart, C. Vonrhein
+                (2016-2017) G. Bricogne, C. Flensburg, R. Fogh, P. Keller, W. Paciorek, A. Sharff, I. Tickle, C. Vonrhein
+                (2018-2021) G. Bricogne, C. Flensburg, R. Fogh, P. Keller, W. Paciorek, A. Sharff, I. Tickle, C. Vonrhein, M. Wojdyr
+
+
+      Authors:  (2004-2007) G. Bricogne, C. Vonrhein
+                (2008-2010) G. Bricogne, C. Flensburg, C. Vonrhein, T. Womack
+                (2011-2012) G. Bricogne, C. Flensburg, A. Sharff, C. Vonrhein, T. Womack
+                (2013-2015) G. Bricogne, C. Flensburg, P. Keller, W. Paciorek, A. Sharff, C. Vonrhein
+                (2016-2018) G. Bricogne, C. Flensburg, P. Keller, W. Paciorek, A. Sharff, I. Tickle, C. Vonrhein
+                (2019-2021) G. Bricogne, C. Flensburg, R. Fogh, P. Keller, W. Paciorek, A. Sharff, I. Tickle, C. Vonrhein, M. Wojdyr
+[m
+      External: (1990-2012) [MOSFLM] A. Leslie, H. Powell
+                (1988-2021) [XDS] W. Kabsch, K. Diederichs
+                (1997-2021) [SCALA/POINTLESS/AIMLESS] P. Evans
+ 
+      Partial support by EU project: BIOXHIT (LSHG-CT-2003-503420)
+ 
+      Contact:  proc-develop@GlobalPhasing.com
+ 
+  Please cite:  Vonrhein, C., Flensburg, C., Keller, P., Sharff, A., Smart, O.,
+                Paciorek, W., Womack, T. & Bricogne, G. (2011). Data processing
+                and analysis with the autoPROC toolbox. Acta Cryst. D67, 293-302.
+ 
+                see: http://journals.iucr.org/d/issues/2011/04/00/ba5166/ba5166bdy.html
+ 
+  Further details (also about correct acknowledgment during PDB deposition) can
+  be found at: https://www.globalphasing.com/autoproc/wiki/index.cgi?CitingAutoPROC
+ 
+ ==============================================================================
+ 
+
+ -----------------------------------------------------------------------------------------
+  Host      : cn75
+  OS        : CentOS Linux release 7.9.2009 (Core)|PRETTY_NAME="CentOS Linux 7 (Core)"||REDHAT_SUPPORT_PRODUCT="centos"|REDHAT_SUPPORT_PRODUCT_VERSION="7"|x86_64|3.10.0-1160.36.2.el7.x86_64
+  User      : unknown (group = MAX-Lab)
+  Directory : /data/visitors/biomax/20211214/20220701/process/MID2/MID2-x0504/xds_MID2-x0504_1_1/autoPROC/cn75_20220701-232936/AutoPROCv1_0_anom
+  Date      : Fri Jul  1 23:29:41 CEST 2022
+  autoPROC  : /mxn/groups/sw/mxsw/autoPROC
+ -----------------------------------------------------------------------------------------
+
+ 
+ NOTE : running with arguments "-B -xml -nthreads 32 -M
+        ReportingInlined autoPROC_HIGHLIGHT=no -h5
+        /data/visitors/biomax/20211214/20220701/raw/MID2/MID2-x0504/MID2-x0504_1_master.h5
+        autoPROC_XdsKeyword_LIB=/mxn/groups/sw/mxsw/xds_related/durin-plugin.so
+        -ANO autoPROC_AnalyseForPoorImageRanges=no"
+ 
+ 
+ NOTE : summary of process output also created as HTML.
+        Please point your browser to
+        "file:///data/visitors/biomax/20211214/20220701/process/MID2/MID2-x0504/xds_MID2-x0504_1_1/autoPROC/cn75_20220701-232936/AutoPROCv1_0_anom/./summary.html".
+ 
+ 
+ NOTE : please cite use of all components and programs (see
+        below)!
+ 
+        autoPROC   : Vonrhein, C., Flensburg, C., Keller, P., Sharff, A., Smart, O., Paciorek, W.,
+                     Womack, T. and Bricogne, G. (2011). Data processing and analysis with
+                     the autoPROC toolbox. Acta Cryst. D67, 293-302.
+        
+        XDS        : Kabsch, W. (2010). XDS. Acta Cryst. D66, 125-132.
+        
+        POINTLESS  : Evans, P.R. (2006). Scaling and assessment of data quality, Acta Cryst. D62, 72-82.
+        
+        AIMLESS    : Evans, P.R. and Murshudov, G.N. (2013). How good are my data and what is the
+                     resolution?, Acta Cryst. D69, 1204-1214.
+        
+        CCP4       : Winn, M.D., Ballard, C.C., Cowtan, K.D. Dodson, E.J., Emsley, P., Evans, P.R.,
+                     Keegan, R.M., Krissinel, E.B., Leslie, A.G.W., McCoy, A., McNicholas, S.J., Murshudov,
+                     G.N., Pannu, N.S., Potterton, E.A., Powell, H.R., Read, R.J., Vagin, A. and Wilson, K.S.
+                     (2011). Overview of the CCP4 suite and current developments, Acta. Cryst. D67, 235-242.
+        
+        STARANISO  : Tickle, I.J., Flensburg, C., Keller, P., Paciorek, W., Sharff, A., Vonrhein, C., 
+                     and Bricogne, G. (2018-2021). STARANISO. Cambridge, United Kingdom: Global Phasing Ltd.
+        
+ 
+      Program versions:
+          XDS         : Jan 10, 2022 (BUILT 20220220)
+          POINTLESS   : 1.12.10
+          AIMLESS     : 0.7.7
+          CCP4        : 7.1.015
+          STARANISO   : 2.3.77 (20210620)
+ 
+ 
+ NOTE : based on user input we will set OMP_NUM_THREADS=32
+        and the XDS keyword MAXIMUM_NUMBER_OF_PROCESSORS=32.
+        You can change this via the '-nthreads' and/or
+        autoPROC_XdsKeyword_MAXIMUM_NUMBER_OF_PROCESSORS=<N>
+        argument.
+ 
+ ===== checking input for XDS 
+ 
+ WARNING : XDS version (Jan 10, 2022, built on 20220220)
+           found. This is a newer version of XDS than the one
+           against which this version of autoPROC was tested
+           (Feb 5, 2021, built on 20210323). This might be
+           OK, but we would recommend that you look out for
+           newer versions of autoPROC that would have been
+           tested against your current version of XDS.
+ 
+ 
+ NOTE : using
+        /mxn/groups/sw/mxsw/autoPROC/autoPROC/bin/linux64/hdf2mini-cbf
+        for conversion of Eiger/HDF5 containers to single
+        image files (if needed)
+ 
+ 
+ NOTE : identifiers given by user = HDF5_1
+ 
+ ===== Setup 
+ 
+ NOTE : for image
+        "/data/visitors/biomax/20211214/20220701/raw/MID2/MID2-x0504/MID2-x0504_1_master.h5"
+        we found detector identifier = "HDF5/Eiger-E-32-0105"
+        and timestamp = "20220701"
+ 
+ 
+ NOTE : no default settings found based on image header
+        (detector identifier "HDF5/Eiger-E-32-0105")
+ 
+ ===== Spot-search and indexing using XDS 
+ 
+ NOTE : all output written to directory HDF5_1
+ 
+        Header information from first image
+        (/data/visitors/biomax/20211214/20220701/raw/MID2/MID2-x0504/MID2-x0504_1_master.h5):
+          date                                = 01 Jul 2022 23:29:04.001
+          exposure time             [seconds] = 0.0110
+          distance                       [mm] = 232.313
+          wavelength                      [A] = 0.976254
+          Omega-angle (start, end)   [degree] = 269.99997 270.19997
+          Oscillation-angle in Omega [degree] = 0.20000
+          Beam centre in X            [pixel] = 2100.105
+          Beam centre in Y            [pixel] = 2119.158
+ 
+ NOTE : using spots from images 1-1800
+ 
+ Number of spots (total)  :     109456
+   within ice-ring ranges               :       6193 =   5.66 %
+   outside those ranges                 :     103263 =  94.34 %
+ Resolution limits of     109456 spots  :   584.4555 -     1.3643 A
+ 
+ NOTE : good - no problematic spots found (due to
+        hot/damaged and/or flickering pixels)!
+ 
+ 
+ NOTE : re-setting low-resolution limit to 20.0 A (from
+        999.0) for indexing
+ 
+ 
+ NOTE : running iterative indexing - for details see
+        run_idxref.log
+ 
+ 
+ NOTE : picking indexing solution that used the most spots
+        (=01) - for details see run_idxref.log
+ 
+ 
+ NOTE : indexing uses 93% (101608) of the initial 109456
+        spots
+ 
+ 
+ NOTE : the selected indexing solution uses less than 95% of
+        initial spots - probably just some noise in the found
+        spots or some very weak ice-rings.
+ 
+ 
+ NOTE : automatically added 4 EXCLUDE_RESOLUTION_RANGE cards
+        (to accommodate possible ice-rings) - based on
+        automatic analysis (see xds_spots2res.log for
+        details). If you don't want this behaviour, please
+        set XdsExcludeIceRingsAutomatically="no" on the
+        command-line. If you want to exclude all known
+        ice-rings regardless of whether they are detected,
+        please set XdsExcludeIceRingsAutomatically="all" on
+        the command-line.
+ 
+ 
+ NOTE : based on analysis of indexed spots we would
+        recommend a low-resolution limit of 39.00 A. You can
+        set this on the command-line (e.g. adding
+        reslow=39.00).
+ 
+ 
+ NOTE : based on all indexed spots, a high-resolution limit
+        of at least 1.86 A should be possible.
+ 
+ 
+    SPACE GROUP AND CELL PARAMETERS ARE UNKNOWN
+    AUTOINDEXING IS BASED ON 101651 OUT OF  101956 SPOTS
+   
+    ***** INDEXING OF OBSERVED SPOTS IN SPACE GROUP #   1 *****
+       101608 OUT OF    101651 SPOTS INDEXED.
+          14 REJECTED REFLECTIONS (REASON: OVERLAP)
+          29 REJECTED REFLECTIONS (REASON: TOO FAR FROM IDEAL POSITION)
+    EXPECTED ERROR IN SPINDLE  POSITION     0.134 DEGREES
+    EXPECTED ERROR IN DETECTOR POSITION      0.51 PIXELS
+   
+    ***** DIFFRACTION PARAMETERS USED AT START OF INTEGRATION *****
+   
+    REFINED VALUES OF DIFFRACTION PARAMETERS DERIVED FROM    101608 INDEXED SPOTS
+    REFINED PARAMETERS:   BEAM ORIENTATION CELL AXIS
+    STANDARD DEVIATION OF SPOT    POSITION (PIXELS)     0.51
+    STANDARD DEVIATION OF SPINDLE POSITION (DEGREES)    0.13
+    SPACE GROUP NUMBER      1
+    UNIT CELL PARAMETERS     54.072    61.032   119.587  90.012  89.959  89.995
+    REC. CELL PARAMETERS   0.018494  0.016385  0.008362  89.988  90.041  90.005
+    COORDINATES OF UNIT CELL A-AXIS   -28.611   -18.870   -41.822
+    COORDINATES OF UNIT CELL B-AXIS    43.491    19.043   -38.352
+    COORDINATES OF UNIT CELL C-AXIS    55.021  -105.711     9.945
+    CRYSTAL MOSAICITY (DEGREES)     0.200
+    LAB COORDINATES OF ROTATION AXIS  0.001438  0.999998  0.001027
+    DIRECT BEAM COORDINATES (REC. ANGSTROEM)     0.001941   -0.000617    1.024321
+    DETECTOR COORDINATES (PIXELS) OF DIRECT BEAM    2094.24   2121.02
+    DETECTOR ORIGIN (PIXELS) AT                     2100.10   2119.16
+    CRYSTAL TO DETECTOR DISTANCE (mm)       232.31
+    LAB COORDINATES OF DETECTOR X-AXIS -1.000000  0.000000  0.000000
+    LAB COORDINATES OF DETECTOR Y-AXIS  0.000000 -1.000000  0.000000
+   
+   
+   
+     LATTICE-  BRAVAIS-   QUALITY  UNIT CELL CONSTANTS (ANGSTROEM & DEGREES)
+    CHARACTER  LATTICE     OF FIT      a      b      c   alpha  beta gamma
+   
+       44        aP          0.0      54.1   61.0  119.6  90.0  90.0  90.0
+       31        aP          0.0      54.1   61.0  119.6  90.0  90.0  90.0
+       33        mP          0.3      54.1   61.0  119.6  90.0  90.0  90.0
+       35        mP          0.8      61.0   54.1  119.6  90.0  90.0  90.0
+       34        mP          1.1      54.1  119.6   61.0  90.0  90.0  90.0
+       32        oP          1.1      54.1   61.0  119.6  90.0  90.0  90.0
+       14        mC        137.6      81.5   81.5  119.6  90.0  90.0  83.1
+       10        mC        137.6      81.5   81.5  119.6  90.0  90.0  96.9
+   
+   BRAVAIS-            POSSIBLE SPACE-GROUPS FOR PROTEIN CRYSTALS
+     TYPE                     [SPACE GROUP NUMBER,SYMBOL]
+     aP      [1,P1]
+     mP      [3,P2] [4,P2(1)]
+     oP      [16,P222] [17,P222(1)] [18,P2(1)2(1)2] [19,P2(1)2(1)2(1)]
+   
+   
+ 
+ NOTE : according to some basic analysis, an initial value
+        of 6500 as a low cut-off for DEFPIX should be used.
+        But you might want to check ./HDF5_1/BKGPIX.cbf
+        visually (e.g. with gpx2) and define this value
+        yourself.
+ 
+ ===== Initial integration with XDS 
+ 
+ NOTE : based on CC(1/2) analysis (>=0.1) after the initial
+        integration, the data seems to have an isotropic
+        high-resolution limit of 1.6541 A. Setting a specific
+        isotropic high-resolution limit can be done on the
+        command-line (e.g. adding "-R 999 1.6541").
+ 
+ ===== Post-refinement with CORRECT and POINTLESS 
+ 
+   Scores for each symmetry element
+      
+      Nelmt  Lklhd  Z-cc    CC        N  Rmeas    Symmetry & operator (in Lattice Cell)
+      
+        1   0.908   9.03   0.90  440624  0.056     identity
+        2   0.911   8.97   0.90  554790  0.059 *** 2-fold l ( 0 0 1) {-h,-k,l}
+        3   0.911   8.97   0.90  554717  0.058 *** 2-fold k ( 0 1 0) {-h,k,-l}
+        4   0.911   8.96   0.90  554029  0.059 *** 2-fold h ( 1 0 0) {h,-k,-l}
+      
+   Best Solution:    space group P 21 21 21
+   
+      Reindex operator:                   [h,k,l]                 
+      Laue group probability:             0.971
+      Systematic absence probability:     0.912
+      Total probability:                  0.885
+      Space group confidence:             0.868
+      Laue group confidence               0.967
+   
+      Unit cell:    54.08   61.04  119.61      90.00   89.96   89.99
+ 
+ NOTE : for details please see pointless.log and
+        pointless.ana
+ 
+ 
+ NOTE : have updated parameters after running POINTLESS
+        (with new cell = 54.08 61.04 119.61 90.00 90.00
+        90.00)
+ 
+ 
+ NOTE : re-running CORRECT step with updated parameters from
+        POINTLESS
+ 
+ RESOLUTION     NUMBER OF REFLECTIONS    COMPLETENESS R-FACTOR  R-FACTOR COMPARED I/SIGMA   R-meas  CC(1/2)  Anomal  SigAno   Nano
+   LIMIT     OBSERVED  UNIQUE  POSSIBLE     OF DATA   observed  expected                                      Corr
+
+     3.85       51916    7236      7242       99.9%       2.6%      2.7%    51916   61.10      2.8%   100.0*    17*   0.932    3182
+     2.73       94085   13186     13186      100.0%       4.5%      4.2%    94083   34.59      4.8%    99.9*     5    0.939    6148
+     2.23      114603   16270     17080       95.3%      16.3%     15.4%   114535   11.60     17.6%    99.1*     3    0.873    7663
+     1.93      132601   18636     20151       92.5%      44.1%     43.6%   132560    4.58     47.6%    95.7*     2    0.799    8872
+     1.73      155007   21990     22936       95.9%     169.0%    174.7%   154942    1.10    182.4%    62.0*    -2    0.649   10516
+     1.58      140059   25240     25310       99.7%     420.8%    446.8%   139993    0.22    465.2%    12.5*     0    0.557   12082
+     1.46       81438   25045     27525       91.0%     780.8%    836.3%    80554   -0.01    938.7%     2.4      1    0.519   11218
+     1.36       42305   17520     29597       59.2%    1196.8%   1295.5%    41050   -0.06   1549.1%     2.4      2    0.514    6971
+     1.29       10575    5541     31490       17.6%    1473.4%   1587.0%     9389   -0.06   2018.0%     0.7      1    0.522    1274
+    total      822589  150664    194517       77.5%       7.1%      7.1%   819022    7.97      7.8%   100.0*     1    0.679   67926
+
+     a        b          ISa (see Diederichs, Acta Cryst. (2010). D66, 733-740)
+ 7.285E-01  1.254E-03   33.08
+ 
+ WARNING : there is no indication of any anomalous signal in
+           CORRECT.LP and CORRECT_ana_ano_all.mrfana . Data
+           completeness (100%) and multiplicity (7.17) are
+           sufficiently high to make those indications
+           reliable. You should definitely consider running
+           with the -noANO command-line option instead and
+           compare results.
+ 
+ ===== Final processing of data with XDS 
+ 
+ RESOLUTION     NUMBER OF REFLECTIONS    COMPLETENESS R-FACTOR  R-FACTOR COMPARED I/SIGMA   R-meas  CC(1/2)  Anomal  SigAno   Nano
+   LIMIT     OBSERVED  UNIQUE  POSSIBLE     OF DATA   observed  expected                                      Corr
+
+     3.85       52047    7262      7267       99.9%       2.8%      2.9%    52047   58.07      3.0%    99.9*    20*   0.943    3195
+     2.72       93901   13215     13215      100.0%       4.7%      4.3%    93899   32.93      5.1%    99.9*     8    0.983    6161
+     2.23      114547   16240     17106       94.9%      18.1%     16.8%   114501   10.63     19.6%    99.0*     3    0.899    7663
+     1.93      132950   18634     20216       92.2%      50.7%     50.6%   132931    3.99     54.7%    95.1*     1    0.788    8892
+     1.72      155195   21951     22974       95.5%     196.7%    215.3%   155164    0.88    212.2%    56.6*    -3    0.624   10521
+     1.57      140051   25281     25353       99.7%     493.8%    578.9%   139984    0.13    545.9%     9.4      0    0.530   12096
+     1.46       81347   25062     27572       90.9%     979.2%   1145.6%    80468   -0.06   1177.6%     1.3      1    0.504   11232
+     1.36       42236   17539     29690       59.1%    1360.5%   1622.3%    40958   -0.08   1761.3%     2.0      2    0.507    6971
+     1.29       10380    5443     31566       17.2%    1514.5%   1757.7%     9206   -0.08   2075.2%     0.1      1    0.517    1251
+    total      822655  150628    194959       77.3%       6.9%      7.0%   819158    7.46      7.5%   100.0*     2    0.674   67982
+
+     a        b          ISa (see Diederichs, Acta Cryst. (2010). D66, 733-740)
+ 6.716E-01  1.619E-03   30.33
+ 
+ NOTE : 0 overloaded reflections out of 827965 total
+ 
+      
+      Cell parameters ...................................... 54.1139 61.0639 119.6734 90.000 90.000 90.000
+      Spacegroup number .................................... 19
+      Spacegroup name ...................................... P212121
+      Distance ............................................. 232.450607
+      Detector origin ...................................... 2099.140869 2118.772217
+      Wavelength ........................................... 0.976254
+      
+ ===== Scale XDS-processed data with AIMLESS 
+ 
+ converting XDS file (XDS_ASCII.HKL) to MTZ format with POINTLESS ... done
+ 
+ running "aP_scale -mtz XDS_ASCII.mtz AutoProcScaleStatsUseMrfanaIgnoreIceRingShells='yes' AutoProcScaleStatsUseMrfanaIgnoreIceRingReso='2.675 2.665:2.255 2.245:2.086 2.064:1.925 1.915' -ANO autoPROC_ScaleWithXscale=no" ...  
+ 
+ NOTE : for re-running the scaling module aP_scale (eg. with
+        the above command-line), please go into directory
+        /data/visitors/biomax/20211214/20220701/process/MID2/MID2-x0504/xds_MID2-x0504_1_1/autoPROC/cn75_20220701-232936/AutoPROCv1_0_anom/HDF5_1.
+        You might also want to have a look at the
+        "aP_scale.sh" script there!
+ 
+ 
+  RESOLUTION RUN   1   54.40 1.9080 ! recommended resolution cut based on I/sigI       <    2.000
+ NOTE : AIMLESS (version 0.7.7), CCP4 7.1.015
+   Cell:   54.11   61.06  119.67   90.00   90.00   90.00
+   Wavelength:  0.97625 A
+   Run number:    1 consists of batches          1 to       1800
+      Resolution range for run:     54.39     1.91
+      Phi range:              270.00 to              630.00
+ 
+ NOTE : the statistics below are for all measurements used
+        during scale determination - this corresponds to the
+        traditional isotropic analysis.
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of resolution cut:
+  ------------------------------------------------- 
+     Rpim           <=    0.6000
+     I/sigI         >=    2.00
+     CC(1/2)        >=    0.3000
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.941
+     High resolution limit                      1.908       5.178       1.908
+
+
+     Rmerge  (all I+ & I-)                      0.053       0.028       1.360
+     Rmerge  (within I+/I-)                     0.053       0.027       1.325
+     Rmeas   (all I+ & I-)                      0.055       0.029       1.416
+     Rmeas   (within I+/I-)                     0.057       0.029       1.434
+     Rpim    (all I+ & I-)                      0.015       0.008       0.388
+     Rpim    (within I+/I-)                     0.021       0.011       0.544
+     Total number of observations              398350       21446       13254
+     Total number unique                        29816        1726        1030
+     Mean(I)/sd(I)                               24.5        72.9         2.0
+     Completeness                                94.3        99.9        66.5
+     Multiplicity                                13.4        12.4        12.9
+     CC(1/2)                                    1.000       0.999       0.899
+
+
+     Anomalous completeness                      94.0        99.9        65.2
+     Anomalous multiplicity                       7.1         7.3         6.8
+     CC(ano)                                   -0.093      -0.086       0.071
+     |DANO|/sd(DANO)                            0.786       0.910       0.673
+ ------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                     Completeness    Multiplicity
+                                                                                     --------------  ------------
+            Resolution      #uniq     #Rfac  Rmerge   Rmeas    Rpim   #Isig  I/sigI     all     ano    all    ano CC(1/2)  #CCAno CC(ano)  SigAno
+ ------------------------------------------------------------------------------------------------------------------------------------------------
+         54.392 -   5.178    1726     21446   0.028   0.029   0.008    1726  72.882  0.9988  0.9992  12.43   7.25  0.9994    1253 -0.0863   0.910
+          5.178 -   4.110    1630     21180   0.028   0.029   0.008    1630  71.746  1.0000  1.0000  12.99   7.14  0.9994    1341 -0.0672   0.834
+          4.110 -   3.591    1614     21467   0.034   0.035   0.010    1614  63.049  1.0000  0.9993  13.30   7.19  0.9992    1372 -0.2250   0.855
+          3.591 -   3.262    1600     21622   0.041   0.043   0.012    1600  51.567  1.0000  1.0000  13.51   7.26  0.9992    1379 -0.2229   0.856
+          3.262 -   3.029    1588     21357   0.054   0.057   0.015    1588  41.070  1.0000  1.0000  13.45   7.17  0.9988    1388  0.0094   0.900
+          3.029 -   2.850    1580     20433   0.075   0.078   0.022    1580  30.708  1.0000  1.0000  12.93   6.86  0.9984    1399  0.0467   0.870
+          2.850 -   2.707    1589     21164   0.101   0.105   0.029    1589  23.442  1.0000  1.0000  13.32   7.06  0.9975    1406  0.0324   0.847
+          2.707 -   2.590    1422     18603   0.134   0.140   0.038    1422  17.793  0.9029  0.8971  13.08   6.93  0.9959    1253  0.1013   0.805
+          2.590 -   2.490    1567     20947   0.171   0.178   0.048    1567  14.588  1.0000  1.0000  13.37   7.04  0.9939    1406  0.0093   0.784
+          2.490 -   2.404    1568     21165   0.210   0.218   0.059    1568  12.171  1.0000  1.0000  13.50   7.10  0.9902    1411  0.1029   0.788
+          2.404 -   2.329    1575     21350   0.230   0.239   0.065    1575  11.170  1.0000  1.0000  13.56   7.14  0.9913    1413  0.0135   0.783
+          2.329 -   2.262    1536     21069   0.273   0.283   0.076    1536   9.819  1.0000  1.0000  13.72   7.15  0.9883    1406  0.0682   0.766
+          2.262 -   2.203    1294     17197   0.332   0.345   0.094    1294   7.686  0.8133  0.8115  13.30   7.00  0.9845    1154  0.0753   0.739
+          2.203 -   2.149    1551     21330   0.366   0.380   0.102    1551   7.437  1.0000  1.0000  13.75   7.18  0.9827    1413  0.0803   0.736
+          2.149 -   2.100    1554     21504   0.466   0.483   0.129    1554   5.973  1.0000  1.0000  13.84   7.21  0.9754    1425  0.0367   0.717
+          2.100 -   2.055     746      9674   0.563   0.587   0.161     746   4.600  0.4755  0.4688  12.97   6.83  0.9690     661  0.0638   0.710
+          2.055 -   2.014    1542     21104   0.635   0.660   0.177    1542   4.359  1.0000  1.0000  13.69   7.13  0.9628    1416  0.0290   0.709
+          2.014 -   1.976    1568     21483   0.809   0.840   0.226    1568   3.441  1.0000  1.0000  13.70   7.13  0.9551    1441  0.0225   0.711
+          1.976 -   1.941    1536     20986   1.039   1.079   0.290    1536   2.744  0.9987  0.9986  13.66   7.11  0.9267    1413  0.0505   0.669
+          1.941 -   1.908    1030     13243   1.360   1.416   0.388    1030   1.996  0.6645  0.6524  12.87   6.80  0.8989     916  0.0714   0.673
+ ------------------------------------------------------------------------------------------------------------------------------------------------
+ Total:  54.392 -   1.908   29816    398324   0.053   0.055   0.015   29816  24.500  0.9432  0.9402  13.36   7.10  0.9995   26266 -0.0931   0.786
+ 
+ NOTE : the statistics below are for all measurements up to
+        the maximum resolution as determined by STARANISO.
+        This is given here only for comparison (between the
+        tradtional isotropic analysis and the anisotropic
+        analysis by STARANISO) and doesn't correspond to an
+        actually useful dataset.
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of diffraction limits:
+  -----------------------------------------------------
+     local(I/sigI)  >=    1.20
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.636
+     High resolution limit                      1.609       4.365       1.609
+
+
+     Rmerge  (all I+ & I-)                      0.066       0.028      28.264
+     Rmerge  (within I+/I-)                     0.067       0.027      18.882
+     Rmeas   (all I+ & I-)                      0.069       0.029      29.918
+     Rmeas   (within I+/I-)                     0.072       0.029      21.227
+     Rpim    (all I+ & I-)                      0.019       0.008       9.670
+     Rpim    (within I+/I-)                     0.027       0.011       9.550
+     Total number of observations              660526       35625       24359
+     Total number unique                        50517        2821        2581
+     Mean(I)/sd(I)                               14.1        67.8         0.1
+     Completeness (spherical)                    96.6        99.9       100.0
+     Completeness (ellipsoidal)                  95.4        99.9       100.0
+     Multiplicity                                13.1        12.6         9.4
+     CC(1/2)                                    1.000       0.999       0.098
+
+
+     Anomalous completeness (spherical)          96.4       100.0       100.0
+     Anomalous completeness (ellipsoidal)        95.2       100.0       100.0
+     Anomalous multiplicity                       6.9         7.2         4.9
+     CC(ano)                                   -0.106      -0.115       0.029
+     |DANO|/sd(DANO)                            0.716       0.821       0.621
+
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ # detailed statistics (measurements up to the maximum resolution as determined by STARANISO)
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                     Compl. Spher.   Multiplicity                                   Compl. Ellip. 
+                                                                                     --------------  ------------                                  --------------- 
+            Resolution      #uniq     #Rfac  Rmerge   Rmeas    Rpim   #Isig  I/sigI     all     ano    all    ano CC(1/2)  #CCAno CC(ano)  SigAno    all     ano
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+         54.392 -   4.365    2821     35625   0.028   0.029   0.008    2821  67.764  0.9993  0.9995  12.63   7.20  0.9995    2149 -0.1152   0.821   0.9993  0.9995
+          4.365 -   3.465    2699     35883   0.033   0.035   0.009    2699  58.978  1.0000  0.9996  13.29   7.19  0.9993    2288 -0.1819   0.818   1.0000  0.9996
+          3.465 -   3.027    2649     35712   0.049   0.051   0.014    2649  42.703  1.0000  1.0000  13.48   7.20  0.9989    2306 -0.0916   0.859   1.0000  1.0000
+          3.027 -   2.750    2653     34735   0.082   0.085   0.023    2653  27.395  1.0000  1.0000  13.09   6.95  0.9982    2347  0.0338   0.843   1.0000  1.0000
+          2.750 -   2.553    2465     32465   0.132   0.138   0.038    2465  17.952  0.9416  0.9381  13.17   6.97  0.9961    2185  0.0656   0.818   0.9416  0.9381
+          2.553 -   2.403    2623     35297   0.195   0.202   0.055    2623  12.853  1.0000  1.0000  13.46   7.09  0.9922    2354  0.0584   0.780   1.0000  1.0000
+          2.403 -   2.282    2626     35744   0.243   0.252   0.068    2626  10.690  1.0000  1.0000  13.61   7.13  0.9904    2377  0.0310   0.782   1.0000  1.0000
+          2.282 -   2.183    2292     31008   0.331   0.344   0.093    2292   7.896  0.8853  0.8850  13.53   7.09  0.9845    2071  0.0345   0.741   0.8853  0.8850
+          2.183 -   2.099    2596     35784   0.421   0.437   0.117    2596   6.538  1.0000  1.0000  13.78   7.19  0.9789    2370  0.0587   0.724   1.0000  1.0000
+          2.099 -   2.027    1780     23775   0.599   0.623   0.169    1780   4.508  0.6838  0.6811  13.36   6.99  0.9630    1611  0.0203   0.714   0.6838  0.6811
+          2.027 -   1.963    2592     35464   0.814   0.846   0.228    2592   3.422  0.9992  0.9992  13.68   7.13  0.9571    2378  0.0373   0.711   0.9992  0.9991
+          1.963 -   1.907    2071     27542   1.182   1.229   0.333    2071   2.345  0.7990  0.7923  13.30   6.97  0.9156    1877  0.0043   0.664   0.8097  0.8019
+          1.907 -   1.857    2567     34937   1.751   1.819   0.490    2567   1.639  0.9992  0.9992  13.61   7.07  0.8094    2370  0.0209   0.661   0.9989  0.9988
+          1.857 -   1.812    2586     35224   2.515   2.613   0.703    2586   1.180  1.0000  1.0000  13.62   7.07  0.7348    2385 -0.0256   0.630   1.0000  1.0000
+          1.812 -   1.770    2609     35748   3.629   3.769   1.011    2609   0.831  1.0000  1.0000  13.70   7.10  0.5440    2413 -0.0489   0.631   1.0000  1.0000
+          1.770 -   1.733    2574     35262   5.510   5.722   1.534    2574   0.597  1.0000  1.0000  13.70   7.09  0.5168    2387  0.0059   0.636   1.0000  1.0000
+          1.733 -   1.698    2577     35377   9.143   9.493   2.542    2577   0.383  1.0000  1.0000  13.73   7.09  0.4347    2403  0.0006   0.637   1.0000  1.0000
+          1.698 -   1.666    2589     33239  15.678  16.327   4.529    2589   0.239  1.0000  1.0000  12.84   6.64  0.2642    2406 -0.0160   0.633   1.0000  1.0000
+          1.666 -   1.636    2567     27320  19.386  20.377   6.206    2567   0.144  1.0000  0.9992  10.64   5.50  0.1740    2380 -0.0181   0.614   1.0000  1.0000
+          1.636 -   1.609    2581     24359  28.264  29.918   9.670    2581   0.069  1.0000  1.0000   9.44   4.87  0.0984    2390  0.0289   0.621   1.0000  1.0000
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Total:  54.392 -   1.609   50517    660500   0.066   0.069   0.019   50517  14.097  0.9657  0.9645  13.08   6.87  0.9996   45447 -0.1064   0.716   0.9544  0.9521
+ 
+ NOTE : the statistics below are for all observations up to
+        the maximum resolution as determined by STARANISO
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of diffraction limits:
+  -----------------------------------------------------
+     local(I/sigI)  >=    1.20
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.793
+     High resolution limit                      1.609       5.238       1.609
+
+
+     Rmerge  (all I+ & I-)                      0.055       0.028       1.381
+     Rmerge  (within I+/I-)                     0.055       0.027       1.339
+     Rmeas   (all I+ & I-)                      0.057       0.030       1.443
+     Rmeas   (within I+/I-)                     0.059       0.029       1.459
+     Rpim    (all I+ & I-)                      0.016       0.008       0.414
+     Rpim    (within I+/I-)                     0.022       0.011       0.576
+     Total number of observations              443566       20767       20203
+     Total number unique                        33504        1675        1675
+     Mean(I)/sd(I)                               21.1        67.6         1.8
+     Completeness (spherical)                    64.0        99.9        11.7
+     Completeness (ellipsoidal)                  90.0        99.9        68.4
+     Multiplicity                                13.2        12.4        12.1
+     CC(1/2)                                    1.000       0.999       0.749
+
+
+     Anomalous completeness (spherical)          62.7        99.9        10.7
+     Anomalous completeness (ellipsoidal)        89.5        99.9        66.1
+     Anomalous multiplicity                       7.0         7.2         6.4
+     CC(ano)                                   -0.103      -0.089       0.020
+     |DANO|/sd(DANO)                            0.766       0.851       0.693
+
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ # detailed statistics (observations up to the maximum resolution as determined by STARANISO)
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                     Compl. Spher.   Multiplicity                                   Compl. Ellip. 
+                                                                                     --------------  ------------                                  --------------- 
+            Resolution      #uniq     #Rfac  Rmerge   Rmeas    Rpim   #Isig  I/sigI     all     ano    all    ano CC(1/2)  #CCAno CC(ano)  SigAno    all     ano
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+         54.392 -   5.238    1675     20767   0.028   0.030   0.008    1675  67.577  0.9988  0.9992  12.40   7.25  0.9994    1211 -0.0886   0.851   0.9988  0.9992
+          5.238 -   4.113    1675     21769   0.028   0.029   0.008    1675  66.905  1.0000  1.0000  13.00   7.15  0.9994    1377 -0.0771   0.792   1.0000  1.0000
+          4.113 -   3.578    1676     22299   0.034   0.035   0.010    1676  59.203  1.0000  0.9993  13.30   7.18  0.9992    1425 -0.2391   0.818   1.0000  0.9993
+          3.578 -   3.242    1675     22694   0.042   0.043   0.012    1675  48.427  1.0000  1.0000  13.55   7.26  0.9992    1450 -0.2151   0.825   1.0000  1.0000
+          3.242 -   3.003    1674     22414   0.056   0.058   0.016    1674  38.533  1.0000  1.0000  13.39   7.14  0.9989    1464 -0.0436   0.880   1.0000  1.0000
+          3.003 -   2.821    1676     21677   0.078   0.081   0.022    1676  29.024  1.0000  1.0000  12.93   6.87  0.9982    1478  0.0163   0.858   1.0000  1.0000
+          2.821 -   2.664    1674     21969   0.108   0.113   0.031    1674  21.492  0.9163  0.9108  13.13   6.97  0.9967    1469  0.0577   0.842   0.9163  0.9108
+          2.664 -   2.545    1676     22327   0.148   0.154   0.042    1676  16.371  1.0000  1.0000  13.32   7.03  0.9957    1502  0.0239   0.795   1.0000  1.0000
+          2.545 -   2.446    1675     22529   0.186   0.193   0.053    1675  13.398  1.0000  1.0000  13.45   7.07  0.9921    1506  0.1018   0.778   1.0000  1.0000
+          2.446 -   2.361    1675     22737   0.222   0.231   0.062    1675  11.438  1.0000  1.0000  13.57   7.13  0.9919    1512  0.0645   0.782   1.0000  1.0000
+          2.361 -   2.287    1676     22788   0.255   0.265   0.072    1676  10.250  1.0000  1.0000  13.60   7.14  0.9896    1514  0.0806   0.771   1.0000  1.0000
+          2.287 -   2.209    1674     22469   0.313   0.325   0.088    1674   8.297  0.8493  0.8483  13.43   7.05  0.9842    1503  0.0245   0.745   0.8493  0.8483
+          2.209 -   2.151    1677     23031   0.361   0.375   0.101    1677   7.456  0.9994  1.0000  13.73   7.18  0.9842    1526  0.0698   0.740   0.9994  1.0000
+          2.151 -   2.098    1675     23173   0.465   0.483   0.129    1675   6.003  1.0000  1.0000  13.83   7.21  0.9752    1535  0.0197   0.718   1.0000  1.0000
+          2.098 -   2.028    1675     22356   0.591   0.615   0.167    1675   4.561  0.6621  0.6603  13.35   6.98  0.9637    1520 -0.0001   0.713   0.6621  0.6603
+          2.028 -   1.981    1676     22897   0.669   0.694   0.187    1676   4.061  0.8877  0.8913  13.66   7.11  0.9674    1542  0.0606   0.717   0.8996  0.9012
+          1.981 -   1.931    1673     22606   0.833   0.865   0.234    1673   3.297  0.7703  0.7702  13.51   7.02  0.9459    1542  0.0500   0.701   0.8505  0.8468
+          1.931 -   1.867    1678     21564   1.088   1.133   0.313    1678   2.424  0.5190  0.5101  12.86   6.76  0.8791    1513  0.0046   0.666   0.6897  0.6790
+          1.867 -   1.794    1674     21272   1.204   1.254   0.350    1674   2.229  0.3978  0.3942  12.71   6.61  0.8395    1530  0.0157   0.668   0.7981  0.7994
+          1.793 -   1.609    1675     20203   1.381   1.443   0.414    1675   1.839  0.1165  0.1066  12.06   6.43  0.7495    1424  0.0199   0.693   0.6836  0.6615
+ -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Total:  54.392 -   1.609   33504    443541   0.055   0.057   0.016   33504  21.139  0.6405  0.6269  13.24   7.02  0.9995   29543 -0.1028   0.766   0.8998  0.8950
+ 
+ NOTE : for fine-tuning the scaling you can use the
+        stand-alone scaling module "aP_scale" directly -
+        please see the online help ("aP_scale -h") and the
+        documentation. You might want to start with the above
+        command-line as template.
+ 
+ 
+ NOTE : REMARK 200 section (traditional isotropic analysis)
+        written as remark200.pdb - corresponding to
+        truncate.mtz
+ 
+ 
+ NOTE : REMARK 200 section (for anisotropically analysed
+        data from STARANISO) written as
+        staraniso_remark200.pdb - corresponding to
+        staraniso_alldata.mtz
+ 
+ ===== analysing processed and scaled data from XDS 
+ 
+ 
+ NOTE : STARANISO analyses merged intensity data for
+        anisotropy of diffraction, applies an anisotropic
+        cut-off as well as a correction and finally performs
+        Bayesian estimation of structure amplitudes. See also
+        STARANISO server and program details
+ 
+ 
+ NOTE : for details see staraniso_alldata.log
+ 
+ 
+ NOTE : reciprocal plane plots generated from STARANISO
+        analysis - see below.
+ 
+         ./HDF5_1/staraniso_alldata.ismean-0kl.png
+         ./HDF5_1/staraniso_alldata.ismean-h0l.png
+         ./HDF5_1/staraniso_alldata.ismean-hk0.png
+
+ ===== finishing processed and scaled data from XDS 
+ 
+ NOTE : output file created (classical isotropic treatment
+        and analysis of data) = truncate-unique.mtz - see
+        also table1 stats xml This file contains intensities
+        and amplitudes.
+ 
+ 
+  Spacegroup name          P212121
+  Unit cell parameters     54.114 61.064 119.673 90.0 90.0 90.0
+  Wavelength               0.97625 A
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of resolution cut:
+  ------------------------------------------------- 
+     Rpim           <=    0.6000
+     I/sigI         >=    2.00
+     CC(1/2)        >=    0.3000
+
+  Per-reflection cut-off      Operational Resolution                
+  ----------------------------------------------------------------- 
+     I/sigma(I) >= 2.0    :   2.0914 A   for      24111 reflections
+     I/sigma(I) >= 1.0    :   2.0334 A   for      26230 reflections
+     I/sigma(I) >= 0.0    :   1.9800 A   for      28354 reflections
+     all                  :   1.9467 A   for      29815 reflections
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.941
+     High resolution limit                      1.908       5.178       1.908
+
+
+     Rmerge  (all I+ & I-)                      0.053       0.028       1.360
+     Rmerge  (within I+/I-)                     0.053       0.027       1.325
+     Rmeas   (all I+ & I-)                      0.055       0.029       1.416
+     Rmeas   (within I+/I-)                     0.057       0.029       1.434
+     Rpim    (all I+ & I-)                      0.015       0.008       0.388
+     Rpim    (within I+/I-)                     0.021       0.011       0.544
+     Total number of observations              398350       21446       13254
+     Total number unique                        29816        1726        1030
+     Mean(I)/sd(I)                               24.5        72.9         2.0
+     Completeness                                94.3        99.9        66.5
+     Multiplicity                                13.4        12.4        12.9
+     CC(1/2)                                    1.000       0.999       0.899
+
+
+     Anomalous completeness                      94.0        99.9        65.2
+     Anomalous multiplicity                       7.1         7.3         6.8
+     CC(ano)                                   -0.093      -0.086       0.071
+     |DANO|/sd(DANO)                            0.786       0.910       0.673
+ 
+ NOTE : output file created (for all measurements within
+        sphere of highest observed resolution limit) =
+        aimless_alldata-unique.mtz - see also table1 stats
+        xml This file contains intensities only. Be aware
+        that this data will contain intensities for
+        unobserved data (as defined by STARANISO): to derive
+        correct amplitudes, an anisotropic prior should be
+        used within the French & Wilson method (as available
+        e.g. witin STARANISO).
+ 
+ 
+  Spacegroup name          P212121
+  Unit cell parameters     54.114 61.064 119.673 90.0 90.0 90.0
+  Wavelength               0.97625 A
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of diffraction limits:
+  -----------------------------------------------------
+     local(I/sigI)  >=    1.20
+
+  Per-reflection cut-off      Operational Resolution                
+  ----------------------------------------------------------------- 
+     I/sigma(I) >= 2.0    :   2.0196 A   for      26791 reflections
+     I/sigma(I) >= 1.0    :   1.8975 A   for      32137 reflections
+     I/sigma(I) >= 0.0    :   1.7367 A   for      41684 reflections
+     all                  :   1.6171 A   for      51514 reflections
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.636
+     High resolution limit                      1.609       4.365       1.609
+
+
+     Rmerge  (all I+ & I-)                      0.066       0.028      28.264
+     Rmerge  (within I+/I-)                     0.067       0.027      18.882
+     Rmeas   (all I+ & I-)                      0.069       0.029      29.918
+     Rmeas   (within I+/I-)                     0.072       0.029      21.227
+     Rpim    (all I+ & I-)                      0.019       0.008       9.670
+     Rpim    (within I+/I-)                     0.027       0.011       9.550
+     Total number of observations              660526       35625       24359
+     Total number unique                        50517        2821        2581
+     Mean(I)/sd(I)                               14.1        67.8         0.1
+     Completeness (spherical)                    96.6        99.9       100.0
+     Completeness (ellipsoidal)                  95.4        99.9       100.0
+     Multiplicity                                13.1        12.6         9.4
+     CC(1/2)                                    1.000       0.999       0.098
+
+
+     Anomalous completeness (spherical)          96.4       100.0       100.0
+     Anomalous completeness (ellipsoidal)        95.2       100.0       100.0
+     Anomalous multiplicity                       6.9         7.2         4.9
+     CC(ano)                                   -0.106      -0.115       0.029
+     |DANO|/sd(DANO)                            0.716       0.821       0.621
+ 
+ NOTE : final output file created (including analysis of
+        anisotropy via STARANISO ) =
+        staraniso_alldata-unique.mtz (see above for detailed
+        analysis of anisotropy) - see also table1 stats xml
+        This file contains intensities and amplitudes.
+ 
+ 
+  Spacegroup name          P212121
+  Unit cell parameters     54.114 61.064 119.673 90.0 90.0 90.0
+  Wavelength               0.97625 A
+ 
+  Diffraction limits & principal axes of ellipsoid fitted to diffraction cut-off surface:
+    1.998         1.0000   0.0000   0.0000       _a_*
+    1.845         0.0000   1.0000   0.0000       _b_*
+    1.600         0.0000   0.0000   1.0000       _c_*
+ 
+  Number of active ice-rings within this resolution range =  4
+
+  Criteria used in determination of diffraction limits:
+  -----------------------------------------------------
+     local(I/sigI)  >=    1.20
+
+  Per-reflection cut-off      Operational Resolution                
+  ----------------------------------------------------------------- 
+     I/sigma(I) >= 2.0    :   2.0420 A   for      25901 reflections
+     I/sigma(I) >= 1.0    :   1.9713 A   for      28738 reflections
+     I/sigma(I) >= 0.0    :   1.9074 A   for      31649 reflections
+     all                  :   1.8713 A   for      33504 reflections
+
+                                              Overall  InnerShell  OuterShell
+  ---------------------------------------------------------------------------
+     Low resolution limit                      54.392      54.392       1.793
+     High resolution limit                      1.609       5.238       1.609
+
+
+     Rmerge  (all I+ & I-)                      0.055       0.028       1.381
+     Rmerge  (within I+/I-)                     0.055       0.027       1.339
+     Rmeas   (all I+ & I-)                      0.057       0.030       1.443
+     Rmeas   (within I+/I-)                     0.059       0.029       1.459
+     Rpim    (all I+ & I-)                      0.016       0.008       0.414
+     Rpim    (within I+/I-)                     0.022       0.011       0.576
+     Total number of observations              443566       20767       20203
+     Total number unique                        33504        1675        1675
+     Mean(I)/sd(I)                               21.1        67.6         1.8
+     Completeness (spherical)                    64.0        99.9        11.7
+     Completeness (ellipsoidal)                  90.0        99.9        68.4
+     Multiplicity                                13.2        12.4        12.1
+     CC(1/2)                                    1.000       0.999       0.749
+
+
+     Anomalous completeness (spherical)          62.7        99.9        10.7
+     Anomalous completeness (ellipsoidal)        89.5        99.9        66.1
+     Anomalous multiplicity                       7.0         7.2         6.4
+     CC(ano)                                   -0.103      -0.089       0.020
+     |DANO|/sd(DANO)                            0.766       0.851       0.693
+ 
+ NOTE : created mmCIF files (which should be ready to use
+        as-is e.g. for PDB deposition) as
+        Data_1_autoPROC_STARANISO_all.cif (anisotropic
+        analysis) Data_2_autoPROC_TRUNCATE_all.cif
+        (traditional isotropic analysis)
+ 
+ 
+ NOTE : created PDF report as report.pdf (traditional
+        isotropic analysis)
+ 
+ 
+ NOTE : created STARANISO (anisotropic analysis) PDF report
+        as report_staraniso.pdf
+ 
+ 
+ NOTE : summary of process output also created as HTML.
+        Please point your browser to
+        "file:///data/visitors/biomax/20211214/20220701/process/MID2/MID2-x0504/xds_MID2-x0504_1_1/autoPROC/cn75_20220701-232936/AutoPROCv1_0_anom/./summary.html".
+ 
+ 
+ NOTE : created tarball with summary HTML file (and
+        hopefully all referenced files) as
+        "/data/visitors/biomax/20211214/20220701/process/MID2/MID2-x0504/xds_MID2-x0504_1_1/autoPROC/cn75_20220701-232936/AutoPROCv1_0_anom/./summary.tar.gz".
+ 
+ 
+ NOTE : created version of summary HTML file with inlined
+        content - see ./summary_inlined.html
+ 
+
+ Normal termination (1370 sec)
+
+ ##############################################################################
+
