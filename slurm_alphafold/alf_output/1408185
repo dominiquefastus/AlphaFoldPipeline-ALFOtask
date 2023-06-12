@@ -1,0 +1,82 @@
+Starting phenix.process_predicted_model
+on Mon May 29 11:00:15 2023 by domfas
+===============================================================================
+
+Processing files:
+-------------------------------------------------------------------------------
+
+  Found model, ranked_0.pdb
+
+Processing PHIL parameters:
+-------------------------------------------------------------------------------
+
+  No PHIL parameters found
+
+Final processed PHIL parameters:
+-------------------------------------------------------------------------------
+  data_manager {
+    model {
+      file = "ranked_0.pdb"
+    }
+    default_model = "ranked_0.pdb"
+  }
+
+
+Starting job
+===============================================================================
+
+************************************************************
+          PHENIX process_predicted_model  Mon May 29 11:00:15 2023
+************************************************************
+
+Working directory:  /gpfs/offline1/staff/biomax/domfas/pipeline/alf_output/1408159/7QRZ 
+
+PHENIX VERSION:  1.20.1-4487 
+
+Set model=ranked_0.pdb 
+Read model from ranked_0.pdb
+
+Input parameters for process_predicted_model:
+
+job_title = None
+input_files {
+  chain_id = None
+  selection = None
+  pae_file = None
+  distance_model_file = None
+  model = "ranked_0.pdb"
+}
+output_files {
+  processed_model_prefix = None
+  remainder_seq_file_prefix = None
+}
+control {
+  write_files = True
+}
+gui {
+  output_dir = None
+}
+B-value field interpreted as LDDT (0 - 100)
+Maximum rmsd of 1.50 A used
+Maximum B-value to be included: 59.22 A**2
+Total of 181 of 190 residues kept after B-factor filtering
+
+Selecting domains as compact chains
+Generating map at resolution of 15.0 A to identify domains
+Clusters: 6   Threshold: 2.80 
+
+Selection list based on domains:
+(resseq 2:182) (181 residues)  
+Total of 1 regions identified
+Starting residues: 190
+Processed model with 1 domains and 181 residues 
+
+Residues by domain (as chains):
+CHAIN: A1   Residues: 181 
+
+Finished with process_predicted_model
+
+===============================================================================
+Job complete
+usr+sys time: 2.56 seconds
+wall clock time: 8.69 seconds
