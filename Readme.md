@@ -1,4 +1,4 @@
-# mrALFO
+# AlphaFoldPipeline-ALFOtask
 
 In this research project a standardised AlphaFold 2-based molecular replacement strategy will be developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory
 
