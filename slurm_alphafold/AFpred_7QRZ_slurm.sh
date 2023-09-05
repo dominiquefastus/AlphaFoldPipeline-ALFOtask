@@ -8,18 +8,24 @@
 
 #SBATCH --exclusive
 module purge
-module add fosscuda/2020b AlphaFold
+source /sw/tmp/z/m/activate
+module add foss/2021b AlphaFold
 
-export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2021b
+export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2023a
 
 export CWD=`pwd`
 mkdir --parents alf_output/$SLURM_JOBID
 
-cp 7QRZ.fasta /local/slurmtmp.$SLURM_JOBID
+cp /data/staff/biomax/domfas/data/7QRZ/7QRZ.fasta /local/slurmtmp.$SLURM_JOBID
 cd /local/slurmtmp.$SLURM_JOBID
 
 alphafold \
         --fasta_paths=7QRZ.fasta \
-        --max_template_date=2021-11-01 \
+        --max_template_date=2022-01-01 \
+        --db_preset=full_dbs \
+        --model_preset=monomer \
         --output_dir=$CWD/alf_output/$SLURM_JOBID \
         --data_dir=$ALPHAFOLD_DATA_DIR
+
+module purge
+source /sw/tmp/z/m/deactivate

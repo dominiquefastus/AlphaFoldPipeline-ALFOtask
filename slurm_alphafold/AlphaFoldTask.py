@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 
 """
-This is a automated python based SLURM job submitting pipeline for alphafold prediction.
+This is a automated python based SLURM job submitting pipeline for openfold prediction.
 
 Author:     D. Fastus
 """
 
 from pathlib import Path
-import subprocess
+import argparse
 import logging
 import shutil
 import json
-import time
 import sys
 import os
 
@@ -31,6 +30,20 @@ formatter = logging.Formatter('%(asctime)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+'''
+# Add argparse to the script to get diffent input files
+parser = argparse.ArgumentParser(description="AlphaFold prediction pipeline")
+
+# Add arguments
+parser.add_argument("-f", "--fasta", help="Fasta file to predict protein structure")
+parser.add_argument("-p", "--pdb", help="Pdb file to extract sequence and predict protein structure")
+parser.add_argument("-m", "--mtz", help="Mtz file to do molecular replacement")
+parser.add_argument("-o", "--output", help="Output directory for the results", default="alf_output", required=False)
+
+# Parse arguments  
+args = parser.parse_args()
+'''
+
 class ALFOpred():
     """
     Initiates a AlphaFold prediction SLURM job
@@ -39,8 +52,8 @@ class ALFOpred():
     def __init__(self) -> None:
         pass
 
-    # create sbatch file for server
-    def sbatch_AFpred(self, jobName, fastaName, fastaPath, partition = "v100", mem = 0, time = "01-00:00"):
+    # create sbatch file for server to run alphafold with monomer
+    def sbatch_AFpred(self, preset, jobName, fastaName, fastaPath, partition = "v100", mem = 0, time = "01-00:00"):
         script = "#!/usr/bin/env bash\n"
 
         # setting up the cluster environment or job specifications
@@ -58,11 +71,11 @@ class ALFOpred():
 
         # alphafold commands and requirements
         script += "module purge\n"
-        # script += "source /sw/tmp/z/m/activate\n"
-        script += "module add fosscuda/2020b AlphaFold\n\n"
+        script += "source /sw/tmp/z/m/activate\n"
+        script += "module add foss/2021b AlphaFold\n\n"
 
         # define alphafold database directory
-        script += "export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2021b\n\n"
+        script += "export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2023a\n\n"
 
         # others
         script += "export CWD=`pwd`\n"
@@ -73,15 +86,19 @@ class ALFOpred():
         script += f"cd /local/slurmtmp.$SLURM_JOBID\n\n"
 
         # run alphafold
+        # change accordingly the model_preset: monomer, monomer_casp14 or monomer_ptm 
+        # change accordingly the db_preset: full_dbs or reduced_dbs
+        # for faster prediction use the reduced_dbs and monomer_ptm
         script += f"""alphafold \\
         --fasta_paths={fastaName+'.fasta'} \\
-        --max_template_date=2021-11-01 \\
+        --max_template_date=2022-01-01 \\
+        --db_preset=full_dbs \\
+        --model_preset={preset} \\
         --output_dir=$CWD/alf_output/$SLURM_JOBID \\
         --data_dir=$ALPHAFOLD_DATA_DIR"""
 
-        # (optiona) change if 2.3.0 is used
-        # script += "\n\nmodule purge\n"
-        # script += "source /sw/tmp/z/m/deactivate"
+        script += "\n\nmodule purge\n"
+        script += "source /sw/tmp/z/m/deactivate"
         
         shellFile = f"{jobName}_slurm.sh"
 
@@ -109,12 +126,17 @@ class ALFOpred():
         # check if it's a fasta file and get the name for the job
         try:
             with open(args,mode="r") as file:
-                line = file.readline()
+                line = file.read()
 
                 if not line.startswith('>'):
                     logger.error("The input is not a fasta file!")
                     sys.exit(1)
                 else:
+                    if line.count('>') == 1:
+                        preset = "monomer"
+                    else:
+                        preset = "multimer"
+
                     line = line.strip()
                     fasta_name = line[1:5]
 
@@ -122,14 +144,15 @@ class ALFOpred():
             logger.error(f"{args} can not be open or does not exist!", exc_info=True)
             sys.exit(1)
         
-        # create the sbatch file
-        ALFOpred.sbatch_AFpred(jobName=f"AFpred_{fasta_name}", fastaName=fasta_name, fastaPath=args)
+        # create the sbatch file depenjding on the fasta file
+        ALFOpred.sbatch_AFpred(preset=preset, jobName=f"AFpred_{fasta_name}", fastaName=fasta_name, fastaPath=args)
 
-
+        # get the job id from the monitor and print the status of the job to stdout
         job_id = UtilsMonitor.monitor_job(script=f"AFpred_{fasta_name}_slurm.sh", name=f"Predicting ({fasta_name})")
 
 
-  
+        # move the slurm output files to the output directory
+        # check if alphafold output is complete (files are present)
         move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
         for file in move_file:
             shutil.move(file, f"alf_output/{job_id}")
