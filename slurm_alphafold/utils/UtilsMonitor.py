@@ -38,21 +38,3 @@ def monitor_job(script, name):
     logger.info(f"Job {job} finished in {total_time} seconds")
 
     return jobnum
-
-    '''
-# Set the default status to running
-    squeue_status = "RUNNING"
-    time.sleep(10)
-
-    while squeue_status in START_JOB_CODES:
-        # Run the squeue command and capture the output
-        squeue_output = subprocess.run(f"sacct -j {job_id} -o State", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        squeue_output = squeue_output.stdout.decode("ascii").rstrip().split()
-        squeue_status = squeue_output[2]
-        print(squeue_status)
-
-        print(f"Job {job_id} [{name}] is still running...")
-        time.sleep(10)  # Wait for 5 minutes before checking again
-
-        # Check if the job ID is still present in the output
-'''

@@ -21,7 +21,7 @@ import os
 from utils import UtilsMonitor
 
 # build a logger for the SLURM script
-logging.basicConfig(filename=f'job.log', filemode='w', format='%(asctime)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(filename=f'alf_output/job.log', filemode='w', format='%(asctime)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 handler = logging.StreamHandler(sys.stdout)
@@ -52,7 +52,8 @@ class ALFOpred():
     def __init__(self) -> None:
         pass
 
-    # create sbatch file for server to run alphafold with monomer
+    # create sbatch file for server to run alphafold with monomer or multimer preset
+    # uses the most stable and reliable version of alphafold on the server: AlphaFold/2.1.1
     def sbatch_AFpred(self, preset, jobName, fastaName, fastaPath, partition = "v100", mem = 0, time = "01-00:00"):
         script = "#!/usr/bin/env bash\n"
 
@@ -71,11 +72,10 @@ class ALFOpred():
 
         # alphafold commands and requirements
         script += "module purge\n"
-        script += "source /sw/tmp/z/m/activate\n"
-        script += "module add foss/2021b AlphaFold\n\n"
+        script += "module add fosscuda/2020b AlphaFold\n\n"
 
         # define alphafold database directory
-        script += "export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2023a\n\n"
+        script += "export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2021b\n\n"
 
         # others
         script += "export CWD=`pwd`\n"
@@ -89,16 +89,14 @@ class ALFOpred():
         # change accordingly the model_preset: monomer, monomer_casp14 or monomer_ptm 
         # change accordingly the db_preset: full_dbs or reduced_dbs
         # for faster prediction use the reduced_dbs and monomer_ptm
+        basename = os.path.basename(fastaPath)
         script += f"""alphafold \\
-        --fasta_paths={fastaName+'.fasta'} \\
+        --fasta_paths={basename} \\
         --max_template_date=2022-01-01 \\
         --db_preset=full_dbs \\
         --model_preset={preset} \\
         --output_dir=$CWD/alf_output/$SLURM_JOBID \\
         --data_dir=$ALPHAFOLD_DATA_DIR"""
-
-        script += "\n\nmodule purge\n"
-        script += "source /sw/tmp/z/m/deactivate"
         
         shellFile = f"{jobName}_slurm.sh"
 
@@ -146,16 +144,17 @@ class ALFOpred():
         
         # create the sbatch file depenjding on the fasta file
         ALFOpred.sbatch_AFpred(preset=preset, jobName=f"AFpred_{fasta_name}", fastaName=fasta_name, fastaPath=args)
+    
 
         # get the job id from the monitor and print the status of the job to stdout
         job_id = UtilsMonitor.monitor_job(script=f"AFpred_{fasta_name}_slurm.sh", name=f"Predicting ({fasta_name})")
-
 
         # move the slurm output files to the output directory
         # check if alphafold output is complete (files are present)
         move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
         for file in move_file:
-            shutil.move(file, f"alf_output/{job_id}")
+            shutil.move(file, output_dir)
+
 
         output_dir = f"alf_output/{job_id}/{fasta_name}"
         ALFOpred.check_out(output_dir)
