@@ -1,0 +1,16 @@
+.project
+.pydevproject
+.settings
+venv/
+*.pyc
+testdata/
+.idea/
+docs/build
+src/edna2/lib/autocryst/ext/build
+*.so
+.cache
+.pytest_cache
+src/edna2.egg-info
+src/testdata
+slurm*.out
+dist/*.egg
