@@ -8,7 +8,7 @@
 module purge
 module add gopresto CCP4/7.0.078-SHELX-ARP-8.0-17-PReSTO
 
-cp /data/staff/biomax/domfas/data/7QRZ/7QRZ.mtz alf_output/1464798/7QRZ
-cd alf_output/1464798/7QRZ
+cp /data/staff/biomax/domfas/data/7QRZ/7QRZ.mtz alf_output/1478156/7QRZ
+cd alf_output/1478156/7QRZ
 
 dimple ranked_0_processed.pdb /data/staff/biomax/domfas/data/7QRZ/7QRZ.mtz dimpleMR

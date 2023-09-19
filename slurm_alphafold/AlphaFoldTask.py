@@ -149,14 +149,15 @@ class ALFOpred():
         # get the job id from the monitor and print the status of the job to stdout
         job_id = UtilsMonitor.monitor_job(script=f"AFpred_{fasta_name}_slurm.sh", name=f"Predicting ({fasta_name})")
 
+        # get the output directory
+        output_dir = f"alf_output/{job_id}/{fasta_name}"
+
         # move the slurm output files to the output directory
         # check if alphafold output is complete (files are present)
         move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
         for file in move_file:
             shutil.move(file, output_dir)
 
-
-        output_dir = f"alf_output/{job_id}/{fasta_name}"
         ALFOpred.check_out(output_dir)
 
         logger.info(f"The prediction was successful, starting processing of model...\n\n")
@@ -178,14 +179,25 @@ class procALFO():
             file = open(json_file)
             ranking = json.load(file)
 
+            # give information about the best model
             best_model = ranking["order"][0]
-            plddts = ranking["plddts"][best_model]
+
+            # Monomer and multimer give different scoring units for the best model
+            # Need to try both units otherwise the script will fail
+            try:
+                plddts = ranking["plddts"][best_model]
+                logger.info(f"The best predicted model by AlphaFold is {best_model} with a plddts of {plddts}")
+            except KeyError:
+                iptm_ptm = ranking["iptm+ptm"][best_model]
+                logger.info(f"The best predicted model by AlphaFold is {best_model} with a ptm of {iptm_ptm}")
+            else:
+                logger.error("The plddts score is not available for the best model", exc_info=True)
+
+            # Aphafold ranks automatically the models from best to worst
             best_model_file = f"ranked_0.pdb"
+            logger.info(f"The file {best_model_file} will be used as a search model for molecular replacement!")
 
             file.close()
-
-            logger.info(f"The best predicted model by AlphaFold is {best_model} with a plddts of {plddts}")
-            logger.info(f"The file {best_model_file} will be used as a search model for molecular replacement!")
 
         except Exception as e:
             logger.error(f"The produced {infile} file in the AlphaFold file doesn't exist", exc_info=True)

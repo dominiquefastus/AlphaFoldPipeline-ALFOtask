@@ -8,5 +8,5 @@
 module purge
 module add gopresto Phenix/1.20.1-4487-Rosetta-3.10-PReSTO-8.0
 
-cd alf_output/1464798/7QRZ
+cd alf_output/1478156/7QRZ
 phenix.process_predicted_model ranked_0.pdb 

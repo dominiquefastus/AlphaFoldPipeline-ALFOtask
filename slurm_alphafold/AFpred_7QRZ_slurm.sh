@@ -8,10 +8,9 @@
 
 #SBATCH --exclusive
 module purge
-source /sw/tmp/z/m/activate
-module add foss/2021b AlphaFold
+module add fosscuda/2020b AlphaFold
 
-export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2023a
+export ALPHAFOLD_DATA_DIR=/sw/pkg/miv/mx/db/alphafold-2021b
 
 export CWD=`pwd`
 mkdir --parents alf_output/$SLURM_JOBID
@@ -26,6 +25,3 @@ alphafold \
         --model_preset=monomer \
         --output_dir=$CWD/alf_output/$SLURM_JOBID \
         --data_dir=$ALPHAFOLD_DATA_DIR
-
-module purge
-source /sw/tmp/z/m/deactivate
