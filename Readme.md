@@ -1,5 +1,13 @@
 # AlphaFoldPipeline-ALFOtask (Implementation of a biomolecule structure solution pipeline based on AlphaFold prediction)
 
+```
+Author:     Dominique Fastus
+Date:       2021-10-01
+
+Github:     https://github.com/dominiquefastus/AlphaFoldPipeline-ALFOtask
+Tested:     MAX IV Cluster, LUNARC architecture (stabile)
+                    COSMOS, LUNARC architecture (to be updated)
+```
 In this research project a standardised AlphaFold 2-based molecular replacement strategy was developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory. The pipenline is designed to run on the MAX IV specific high perfomance cluster (HPC) which is build upon the LUNARC architecture. The biomolecular structure solution pipeline is programmed with the mind of user interaction at the beamline. Regardingly the pipeline is developed as a standalone program as well as implented in the on-site used edna2 framework. Therefore the project and repisotory is divided into two parts. The first part is the standalone program which is designed to run locally, but submit the individual computer extensive or program specific tasks to the MAX IV HPC. The second part is the implementation of the standalone program in the edna2 framework, which is directly run on the HPC and interacts with the MAX IV related computational infrastracture.
 
 The standalone and edna2 implemented program are both designed to run the following tasks:
@@ -10,20 +18,31 @@ The standalone and edna2 implemented program are both designed to run the follow
 
 The pipeline is also visualised in the following figure:
 
-[![AlphaFold pipeline](figure)
+![AlphaFold pipeline](figure)
 
 ## Requirements
 To run the pipeline following resources and requirements are necessary to produce confident prediction:
 
 ### External programs installed on the HPC
+
+MAX IV Computer Cluster:
 - AlphaFold 2.1.1 
 - Phenix 1.20.1
 - CCP4 7.0.078
 
-The programs are installed on the HPC and can be loaded with the module system and is therefore not necessary to be installed by the user. The module system is a software environment management system for the HPC. The commands to load the programs is explained in the sections.
+The programs are installed on the HPC and can be loaded with the module system and is therefore not necessary to be installed by the user. The module system is a software environment management system for the HPC. The commands to load the programs is explained in the sections.  
 
-### Dependency of gopresto or easybuild
+### Dependency on PReSTO and EasyBuild
+"PReSTO is a software stack for integrated structural biology adapted to high performance computing resources at the National Academic Infrastructure for Su-
+percomputing in Sweden (NAISS) and the local MAX IV compute cluster" [1]. PReSTO is used in the project to load the modules Phenix and CCP4. The exact loading of the software with PReSTO is explained in the sections.
 
+The easybuild [2] is a software build and installation framework for HPC. The easybuild is used in the project to load the module AlphaFold. The exact loading of the software with easybuild is explained in the sections. The easybuild framework implemented AlphaFold 2.1.1, seemed to be the most stable and reliable build of AlphaFold on the cluster, but this should updated to the PReSTO version in the future.
+
+1 PReSTO_docs_2023_Tallberg.pdf. (n.d.). Retrieved November 1, 2023, from https://www.nsc.liu.se/support/presto/PReSTO_docs_2023_Tallberg.pdf
+2 EasyBuild—Building software with ease. (n.d.). Retrieved November 1, 2023, from https://docs.easybuild.io/
+
+### Slurm workload manager
+Slurm is a workload cluster management and job scheduling system, which is used in the project to submit and monitor the individual computing tasks to the HPC. This eases the parallel run of multiple jobs or tasks and allows to destribute the computing ressources better to multiple users.
 
 ## Standalone program
 
@@ -143,79 +162,22 @@ The output of the pipeline is a refined model of the protein of interest and fit
 
 The ouptut folder named alf_output contains the following subfolders and files for the example monomer protein 7QRZ and the example multimer protein 8HUA:
 ```
-├── 1478156
-│   └── 7QRZ
-│       ├── 1478161
-│       ├── 1478162
-│       ├── 7QRZ.mtz
-│       ├── alphafold_1478156.err
-│       ├── alphafold_1478156.out
-│       ├── dimpleMR
-│       │   ├── 01-rwcontents.log
-│       │   ├── 02-phaser.log
-│       │   ├── 03-unique.log
-│       │   ├── 04-freerflag.log
-│       │   ├── 05-cad.log
-│       │   ├── 06-refmac5_jelly.log
-│       │   ├── 07-refmac5_restr.log
-│       │   ├── 08-find-blobs.log
-│       │   ├── blob1-coot.py
-│       │   ├── blob2-coot.py
-│       │   ├── coot.sh
-│       │   ├── dimple.log
-│       │   ├── final.mmcif
-│       │   ├── final.mtz
-│       │   ├── final.pdb
-│       │   ├── ini.pdb
-│       │   ├── jelly.mmcif
-│       │   ├── phaser.sol
-│       │   ├── run-coot.py
-│       │   ├── screen.log
-│       │   └── workflow.pickle
-│       ├── features.pkl
-│       ├── msas
-│       │   ├── bfd_uniclust_hits.a3m
-│       │   ├── mgnify_hits.sto
-│       │   ├── pdb_hits.hhr
-│       │   └── uniref90_hits.sto
-│       ├── ranked_0.pdb
-│       ├── ranked_0_processed.pdb
-│       ├── ranked_1.pdb
-│       ├── ranked_2.pdb
-│       ├── ranked_3.pdb
-│       ├── ranked_4.pdb
-│       ├── ranking_debug.json
-│       ├── relaxed_model_1.pdb
-│       ├── relaxed_model_2.pdb
-│       ├── relaxed_model_3.pdb
-│       ├── relaxed_model_4.pdb
-│       ├── relaxed_model_5.pdb
-│       ├── result_model_1.pkl
-│       ├── result_model_2.pkl
-│       ├── result_model_3.pkl
-│       ├── result_model_4.pkl
-│       ├── result_model_5.pkl
-│       ├── timings.json
-│       ├── unrelaxed_model_1.pdb
-│       ├── unrelaxed_model_2.pdb
-│       ├── unrelaxed_model_3.pdb
-│       ├── unrelaxed_model_4.pdb
-│       └── unrelaxed_model_5.pdb
-└── 1478190
-    └── 8HUA
-        ├── 8HUA_raw.mtz
-        ├── alphafold_1478190.err
-        ├── alphafold_1478190.out
+└── 1478156
+    └── 7QRZ
+        ├── 1478161
+        ├── 1478162
+        ├── 7QRZ.mtz
+        ├── alphafold_1478156.err
+        ├── alphafold_1478156.out
         ├── dimpleMR
         │   ├── 01-rwcontents.log
-        │   ├── 02-truncate.log
-        │   ├── 03-phaser.log
-        │   ├── 04-unique.log
-        │   ├── 05-freerflag.log
-        │   ├── 06-cad.log
-        │   ├── 07-refmac5_jelly.log
-        │   ├── 08-refmac5_restr.log
-        │   ├── 09-find-blobs.log
+        │   ├── 02-phaser.log
+        │   ├── 03-unique.log
+        │   ├── 04-freerflag.log
+        │   ├── 05-cad.log
+        │   ├── 06-refmac5_jelly.log
+        │   ├── 07-refmac5_restr.log
+        │   ├── 08-find-blobs.log
         │   ├── blob1-coot.py
         │   ├── blob2-coot.py
         │   ├── coot.sh
@@ -231,50 +193,33 @@ The ouptut folder named alf_output contains the following subfolders and files f
         │   └── workflow.pickle
         ├── features.pkl
         ├── msas
-        │   ├── A
-        │   │   ├── bfd_uniclust_hits.a3m
-        │   │   ├── mgnify_hits.sto
-        │   │   ├── pdb_hits.sto
-        │   │   ├── uniprot_hits.sto
-        │   │   └── uniref90_hits.sto
-        │   ├── B
-        │   │   ├── bfd_uniclust_hits.a3m
-        │   │   ├── mgnify_hits.sto
-        │   │   ├── pdb_hits.sto
-        │   │   ├── uniprot_hits.sto
-        │   │   └── uniref90_hits.sto
-        │   ├── C
-        │   │   ├── bfd_uniclust_hits.a3m
-        │   │   ├── mgnify_hits.sto
-        │   │   ├── pdb_hits.sto
-        │   │   ├── uniprot_hits.sto
-        │   │   └── uniref90_hits.sto
-        │   └── chain_id_map.json
+        │   ├── bfd_uniclust_hits.a3m
+        │   ├── mgnify_hits.sto
+        │   ├── pdb_hits.hhr
+        │   └── uniref90_hits.sto
         ├── ranked_0.pdb
         ├── ranked_0_processed.pdb
         ├── ranked_1.pdb
-        ├── ranked_1_processed.pdb
         ├── ranked_2.pdb
         ├── ranked_3.pdb
         ├── ranked_4.pdb
         ├── ranking_debug.json
-        ├── relaxed_model_1_multimer.pdb
-        ├── relaxed_model_2_multimer.pdb
-        ├── relaxed_model_3_multimer.pdb
-        ├── relaxed_model_4_multimer.pdb
-        ├── relaxed_model_5_multimer.pdb
-        ├── result_model_1_multimer.pkl
-        ├── result_model_2_multimer.pkl
-        ├── result_model_3_multimer.pkl
-        ├── result_model_4_multimer.pkl
-        ├── result_model_5_multimer.pkl
+        ├── relaxed_model_1.pdb
+        ├── relaxed_model_2.pdb
+        ├── relaxed_model_3.pdb
+        ├── relaxed_model_4.pdb
+        ├── relaxed_model_5.pdb
+        ├── result_model_1.pkl
+        ├── result_model_2.pkl
+        ├── result_model_3.pkl
+        ├── result_model_4.pkl
+        ├── result_model_5.pkl
         ├── timings.json
-        ├── unrelaxed_model_1_multimer.pdb
-        ├── unrelaxed_model_2_multimer.pdb
-        ├── unrelaxed_model_3_multimer.pdb
-        ├── unrelaxed_model_4_multimer.pdb
-        └── unrelaxed_model_5_multimer.pdb
-
+        ├── unrelaxed_model_1.pdb
+        ├── unrelaxed_model_2.pdb
+        ├── unrelaxed_model_3.pdb
+        ├── unrelaxed_model_4.pdb
+        └── unrelaxed_model_5.pdb
 ```
 
 ## Edna2 implementation
@@ -294,11 +239,62 @@ An access to the MAX IV HPC is needed, which is generally granted to users and s
 - os
 
 ### Installation
+To install the edna2 framework, a conda environment need to be setup:
+
+- Download and install miniconda:
+```
+$ wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.3.1-0-Linux-x86_64.sh
+$ bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+- Create a conda environment with specific python version:
+```
+(base) $ conda create -n edna2 python=3.8
+```
+
+- Activate the conda environment, noticable by the name in front of the command line:
+```
+(base) $ conda activate edna2
+(edna2) $
+```
+
+- Clone the edna2 repository from the github:
+```
+(edna2) $ git clone git@github.com:aaronfinke/edna2.git
+(edna2) $ cd edna2
+```
+
+Use the edna2_alphafold branch which contaions the AlphaFold implementation and a yaml setup file.
+- Install necessary packages:
+```
+(edna2) $ conda install -c conda-forge --file requirements.txt
+```
+
+- After that edna2 can be installed with the setup.py file in this environment:
+```
+(env-name) $ cd /path/to/edna2
+(env-name) $ python setup.py install
+```
 
 ### Execution of tasks
 Despite the pipeline, the edna2 framework has defined tasks which are run independently and produce their own folder structure. An independent node needs to be set up to run the tasks on. This could be improved with more automation in the future like using the inbuild edna2 slurm system, which is not yet fully implemented. 
 
 All input files for the specific task are defined in a json format as a design choice. All output information and parsing will be ultimately done with json files. The json files are also used to communicate between the different tasks. The json files are stored in the folder structure of the task. 
+
+
+<br>
+
+To submit or start the specific task the EDNA2 framework is setup each time with defining the path and activating the conda environment [file name: start_sbatch.sh]:
+```
+#!/bin/bash
+EDNA2_PATH=/data/staff/biomax/domfas/edna2_alphafold
+. /home/domfas/Miniconda3/bin/activate
+conda activate edna2       
+export EDNA2_SITE=MAXIV_BIOMAX
+export PATH=${EDNA2_PATH}/bin:$PATH
+export PYTHONPATH=${EDNA2_PATH}/src
+```
+
 
 #### 2.1 Run the AlphaFold prediction task
 The AlphaFold prediction task is identical to the standalone program. The task is run with the following commands and example input file:
@@ -312,7 +308,7 @@ JSON file for the example input file of the task to be executed:
 
 <br>
 
-The slurm batch script is setup as following for the AlphaFold prediction task:
+The slurm batch script is setup as following for the AlphaFold prediction task [file name: alf_sbatch.sh] by sourcing the start_sbatch.sh file and running the python test execution script:
 ```
 #!/bin/bash
 #SBATCH --job-name=ALFOtask
@@ -324,22 +320,9 @@ The slurm batch script is setup as following for the AlphaFold prediction task:
 
 #SBATCH --exclusive
 
-source /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/AlphaFoldTask/start_sbatch.sh
-cd  /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/AlphaFoldTask
-python /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/AlphaFoldTask/AlphaFold_exec_test.py
-```
-
-<br>
-
-To submit or start the slurm batch script, the EDNA2 framework is setup with defining the path and activating the conda environment:
-```
-#!/bin/bash
-EDNA2_PATH=/data/staff/biomax/domfas/edna2_alphafold
-. /home/domfas/Miniconda3/bin/activate
-conda activate edna2       
-export EDNA2_SITE=MAXIV_BIOMAX
-export PATH=${EDNA2_PATH}/bin:$PATH
-export PYTHONPATH=${EDNA2_PATH}/src
+source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask/start_sbatch.sh
+cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask
+python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask/AlphaFold_exec_test.py
 ```
 
 #### 2.2 Run the processing task
@@ -354,7 +337,7 @@ JSON file for the example input file of the task to be executed:
 
 <br>
 
-The slurm batch script is setup as following for the process predicted model task:
+The slurm batch script is setup as following for the process predicted model task [file name: ppm_sbatch.sh] by sourcing the start_sbatch.sh file and running the python test execution script:
 ```
 #!/bin/bash
 #SBATCH --job-name=Phenixtask
@@ -366,10 +349,32 @@ The slurm batch script is setup as following for the process predicted model tas
 
 #SBATCH --exclusive
 
-source /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/PhenixTasks/start_sbatch.sh
-cd  /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/PhenixTasks
-python /data/staff/biomax/domfas/edna2_alphafold/tests/test_tasks/PhenixTasks/ProcPredTask_exec_test.py
+source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks/start_sbatch.sh
+cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks
+python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks/ProcPredTask_exec_test.py
 
+```
+
+The slurm batch script is setup as following for the dimple task [file name: dim_sbatch.sh] by sourcing the start_sbatch.sh file and running the python test execution script:
+```
+#!/bin/bash
+#SBATCH --job-name=Dimpletask
+#SBATCH --partition=v100
+#SBATCH --mem=0
+#SBATCH --time=01-00:00
+#SBATCH --output=dimple_%j.out
+#SBATCH --error=dimple_%j.err
+
+#SBATCH --exclusive
+
+source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/start_sbatch.sh
+cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks
+python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/DimpleTask_exec_test.py
+```
+
+The actual test task is then run like following:
+```
+sbatch [alf_/ppm_/dim_]sbatch.sh
 ```
 
 <br>
