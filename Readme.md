@@ -38,8 +38,7 @@ percomputing in Sweden (NAISS) and the local MAX IV compute cluster" [1]. PReSTO
 
 The easybuild [2] is a software build and installation framework for HPC. The easybuild is used in the project to load the module AlphaFold. The exact loading of the software with easybuild is explained in the sections. The easybuild framework implemented AlphaFold 2.1.1, seemed to be the most stable and reliable build of AlphaFold on the cluster, but this should updated to the PReSTO version in the future.
 
-1 PReSTO_docs_2023_Tallberg.pdf. (n.d.). Retrieved November 1, 2023, from https://www.nsc.liu.se/support/presto/PReSTO_docs_2023_Tallberg.pdf
-2 EasyBuild—Building software with ease. (n.d.). Retrieved November 1, 2023, from https://docs.easybuild.io/
+1 PReSTO_docs_2023_Tallberg.pdf. (n.d.). Retrieved November 1, 2023, from https://www.nsc.liu.se/support/presto/PReSTO_docs_2023_Tallberg.pdf<br>2 EasyBuild—Building software with ease. (n.d.). Retrieved November 1, 2023, from https://docs.easybuild.io/
 
 ### Slurm workload manager
 Slurm is a workload cluster management and job scheduling system, which is used in the project to submit and monitor the individual computing tasks to the HPC. This eases the parallel run of multiple jobs or tasks and allows to destribute the computing ressources better to multiple users.
