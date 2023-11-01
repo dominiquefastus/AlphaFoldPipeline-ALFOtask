@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-This is a automated python based SLURM job submitting pipeline for openfold prediction.
+This is a automated python based SLURM job submitting pipeline for AlphaFold prediction.
 
 Author:     D. Fastus
 """
@@ -18,8 +18,11 @@ import os
 # import module to monitor the SLURM jobs
 from utils import UtilsMonitor
 
+# import module to check the output files
+from utils import UtilsFileCheck
+
 # build a logger for the SLURM script
-logging.basicConfig(filename=f'alf_output/job.log', filemode='w', format='%(asctime)s - %(message)s', level=logging.DEBUG)
+logging.basicConfig(filename=f'job.log', filemode='w', format='%(asctime)s - %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # add a handler to print the log messages to stdout
@@ -30,19 +33,24 @@ formatter = logging.Formatter('%(asctime)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-'''
+
 # Add argparse to the script to get diffent input files
-parser = argparse.ArgumentParser(description="AlphaFold prediction pipeline")
+parser = argparse.ArgumentParser(
+                    prog="AlphaFoldTask.py",
+                    description="AlphaFold prediction pipeline",
+                    epilog='''Example: python3 AlphaFoldTask.py -f fasta_file -m mtz_file -o output_directory\n\n
+                    Author: D. Fastus''')
 
 # Add arguments
-parser.add_argument("-f", "--fasta", help="Fasta file to predict protein structure")
-parser.add_argument("-p", "--pdb", help="Pdb file to extract sequence and predict protein structure")
-parser.add_argument("-m", "--mtz", help="Mtz file to do molecular replacement")
-parser.add_argument("-o", "--output", help="Output directory for the results", default="alf_output", required=False)
+parser.add_argument("-f", "--fasta", dest="fasta_path", required=True, 
+                    help="Path to fasta file to predict protein structure")
+parser.add_argument("-m", "--mtz", dest="reflectionData_path", required=True,
+                    help="Mtz file to do molecular replacement")
+parser.add_argument("-o", "--output", default="alf_output", required=False, 
+                    help="Output directory for the results")
 
 # Parse arguments  
 args = parser.parse_args()
-'''
 
 # the pipeline is designed in a object oriented way to keep the code clean and readable but als keep the structure 
 # of the edna framework for easier implementation 
@@ -55,6 +63,9 @@ class ALFOpred():
     """
     Initiates a AlphaFold prediction SLURM job
     """
+
+    def __init__(self):
+        self.job_id = None
 
     # create sbatch file for server to run alphafold with monomer or multimer preset
     # uses the most stable and reliable version of alphafold on the server: AlphaFold/2.1.1
@@ -75,17 +86,16 @@ class ALFOpred():
         script += f"#SBATCH --mem={mem}\n"
         script += f"#SBATCH --time={time}\n"
 
-        # create aa output and error file for the job
+        # create a output and error file for the job
         script += "#SBATCH --output=alphafold_%j.out\n"
         script += "#SBATCH --error=alphafold_%j.err\n\n"
 
         # make the node exclusive for the job for better performance
         script += "#SBATCH --exclusive\n"
 
-
         # alphafold commands and requirements
         # load the alphafold module and purge the current modules
-        script += "module purge\n"
+        script += "module purge\n"   
         script += "module add fosscuda/2020b AlphaFold\n\n"
 
         # define alphafold database directory for reference to run the msas
@@ -121,18 +131,20 @@ class ALFOpred():
 
     # methods to check if the output are complete and have the right format
     # only the most important files are checked
-    def check_out(self, out_dir):
-        # List of files to check for
-        files_to_check = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 'unrelaxed_model_1.pdb', "ranking_debug.json"]
+    def check_out(self, out_dir, preset):
+        # List of files to check for in monomer prediction
+        files_to_check_mono = ['ranked_0.pdb', 'relaxed_model_1.pdb', 'result_model_1.pkl', 'unrelaxed_model_1.pdb', "ranking_debug.json"]
+
+        # List of files to check for in multimer prediction
+        files_to_check_multi = ['ranked_0.pdb', 'relaxed_model_1_multimer.pdb', 'result_model_1_multimer.pkl', 'unrelaxed_model_1_multimer.pdb', "ranking_debug.json"]
 
         # Check if all defined files are present in the directory
-        for file in files_to_check:
-            file_path = os.path.join(out_dir, file)
-
-            # if the file is not present in the directory the script will stop and give an error message, which will be logged
-            if not os.path.isfile(file_path):
-                logger.error(f"The files are not successfully generated, the {file} is missing...", exc_info=True)
-                return False
+        # use the method loop_files from the UtilsFileCheck module
+        # change for monomer or multimer prediction
+        if preset == "monomer":
+            UtilsFileCheck.loop_files(output_dir=out_dir, files_to_check=files_to_check_mono)
+        else:
+            UtilsFileCheck.loop_files(output_dir=out_dir, files_to_check=files_to_check_multi)
 
         # if all files are present the script will continue and log a message  
         logger.info(f"The files are successfully generated in {out_dir}")
@@ -151,6 +163,7 @@ class ALFOpred():
                 if not line.startswith('>'):
                     logger.error("The input is not a fasta file!")
                     sys.exit(1)
+
                 # if the first line starts with a '>', it will be counted how many '>' or sequences are in the file
                 # by that the script can determine if it's a monomer or multimer prediction and c hange the preset accordingly
                 else:
@@ -161,6 +174,7 @@ class ALFOpred():
                     # get the name of the fasta file without the extension
                     line = line.strip()
                     fasta_name = line[1:5]
+
         # if there is an error with the fasta file the script will stop and give an error message, which will be logged
         # most likely the file doesn't exist or can't be opened
         except Exception as e:
@@ -173,28 +187,29 @@ class ALFOpred():
         # instantiate the class and run the sbatch file an run the prediction
         ALFOpred.sbatch_AFpred(preset=preset, jobName=f"AFpred_{fasta_name}", fastaName=fasta_name, fastaPath=args)
     
-
         # get the job id from the monitor and print the status of the job to stdout
         # this can be replaced by a email notification and using --wait in the sbatch file
         job_id = UtilsMonitor.monitor_job(script=f"AFpred_{fasta_name}_slurm.sh", name=f"Predicting ({fasta_name})")
+        self.job_id = job_id
 
         # get the output directory to check if the prediction was successful and move some files
         output_dir = f"alf_output/{job_id}/{fasta_name}"
 
+        # check if the prediction was successful
+        # check if alphafold output is complete (files are present)
+        ALFOpred.check_out(out_dir=output_dir, preset=preset)
+
         # move the slurm output files to the output directory
-        move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        move_file = ["job.log", f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
         for file in move_file:
             shutil.move(file, output_dir)
 
-        # check if the prediction was successful
-        # check if alphafold output is complete (files are present)
-        ALFOpred.check_out(output_dir)
-
         # if the prediction was successful the script will continue and log a message
-        logger.info(f"The prediction was successful, starting processing of model...\n\n")
+        logger.info("The prediction was successful, starting processing of model...\n\n")
+
 
         # return the output directory and the fasta name for the next step
-        return output_dir, fasta_name
+        return output_dir, fasta_name, job_id, preset
 
 
 # the model from the prediction is processed and the best model is selected
@@ -207,11 +222,14 @@ class procALFO():
     AlphaFold predicted model selection and preprocessing
     """
 
+    def __init__(self, alphafold_job_id):
+        self.alphafold_job_id = alphafold_job_id
+
     # method to choose the best model from the prediction
     # the best model is chosen by the plddts score
     # this is only necessary for loging purposes and to give the user information about the best model
     # alphafold ranks the models automatically from best to worst and the best model is always ranked as 0
-    def choose_model(self, infile):
+    def get_model(self, infile):
         try:
             # open the ranking_debug.json file and load the json file
             json_file = os.path.join(infile, "ranking_debug.json")
@@ -229,8 +247,9 @@ class procALFO():
             except KeyError:
                 iptm_ptm = ranking["iptm+ptm"][best_model]
                 logger.info(f"The best predicted model by AlphaFold is {best_model} with a ptm of {iptm_ptm}")
-            else:
+            except Exception as e:
                 logger.error("The scores are not available for the predicted models", exc_info=True)
+                logger.info(e)
 
             # Aphafold ranks automatically the models from best to worst
             best_model_file = f"ranked_0.pdb"
@@ -259,8 +278,8 @@ class procALFO():
         script += "#SBATCH --time=01-00:00\n"
 
         # create a output and error file for the job
-        script += "#SBATCH --output=alphafold_%j.out\n"
-        script += "#SBATCH --error=alphafold_%j.err\n\n"
+        script += "#SBATCH --output=phenix_%j.out\n"
+        script += "#SBATCH --error=phenix_%j.err\n\n"
 
         # load the phenix module and purge the current modules
         script += "module purge\n"
@@ -288,13 +307,14 @@ class procALFO():
         # only if the job id is an integer the prediction was successful otherwise there is no job id
         try:
             int(job_id)
-        except:
+        except Exception as e:
             logger.error("Processing was not succesfull")
-
+            logger.info(e)
+   
         # move the slurm output files to the output directory
-        move_file = [f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        move_file = [f"phenix_{job_id}.err", f"phenix_{job_id}.out"]
         for file in move_file:
-            shutil.move(file, f"alf_output/{job_id}")
+            shutil.move(file, f"alf_output/{self.alphafold_job_id}")
 
         # if the prediction was successful the script will continue and log a message
         # inform the user that the prediction was successful and the next step will be molecular replacement (dimple)
@@ -307,10 +327,12 @@ class mrALFO():
     """
     Molecular replacement with best predicted model from AlphaFold
     """
+    def __init__(self, alphafold_job_id):
+        self.alphafold_job_id = alphafold_job_id
 
     # DIMPLE - automated molecular replacement and refinement
     # the method takes the reflection data and the processed model as arguments
-    def runDIMPLE(self, jobName, reflectionData_file, processedModel_file, output_dir):
+    def runDIMPLE(self, jobName, reflectionData_file, Model_file, output_dir):
         script = "#!/usr/bin/env bash\n"
 
         # setting up the cluster environment or job specifications
@@ -319,8 +341,8 @@ class mrALFO():
         script += "#SBATCH --time=01-00:00\n"
 
         # create a output and error file for the job
-        script += "#SBATCH --output=alphafold_%j.out\n"
-        script += "#SBATCH --error=alphafold_%j.err\n\n"
+        script += "#SBATCH --output=dimple_%j.out\n"
+        script += "#SBATCH --error=dimple_%j.err\n\n"
 
         # load the cpp4 module with dimple and purge the current modules
         script += "module purge\n"
@@ -332,7 +354,7 @@ class mrALFO():
         script += f"cd {output_dir}\n\n"
 
         # run dimple with the processed model and reflection data and name the output directory dimpleMR
-        script += f"dimple {processedModel_file} {reflectionData_file} dimpleMR"
+        script += f"dimple {Model_file} {reflectionData_file} dimpleMR"
 
         # name the sbatch file and write the script to the file
         shellFile = f"{jobName}_slurm.sh"
@@ -351,10 +373,10 @@ class mrALFO():
         except:
             logger.error("Molecular replacement with DIMPLE was not succesfull")
 
-        # move the slurm output files to the output directory and also the log file 
-        move_file = ["job.log", f"alphafold_{job_id}.err", f"alphafold_{job_id}.out"]
+        # move the slurm output files to the output directory
+        move_file = [f"dimple_{job_id}.err", f"dimple_{job_id}.out"]
         for file in move_file:
-            shutil.move(file, f"alf_output/{job_id}")
+            shutil.move(file, f"alf_output{self.alphafold_job_id}")
 
         # if the prediction was successful the script will continue and log a message
         # inform that the pipeline is finished
@@ -362,6 +384,9 @@ class mrALFO():
 
 # main function to run the pipeline
 if __name__ == "__main__":
+    '''
+    # if the script want to e run without argparse:
+
     # check for positional argument as fasta file
     # check if the fasta file exists
     # if not the script will stop and give an error message, which will be logged
@@ -381,7 +406,17 @@ if __name__ == "__main__":
     elif len(sys.argv) < 3:
         logger.error("Missing mtz file..")
         sys.exit("Error missing argument! Please provide a mtz file")
-    mtz_file = sys.argv[2]
+    '''
+
+    # check if the fasta file exists
+    # if not the script will stop and give an error message, which will be logged
+    fasta_file = args.fasta_path
+    fasta_path = Path(fasta_file)
+    if not fasta_path.is_file():
+        logger.error("Path to fasta file does not exist")
+        sys.exit("Path to fasta file does not exist")
+
+    mtz_file = args.reflectionData_path
     mtzPath = Path(mtz_file)
     if not mtzPath.is_file():
         logger.error("Path to mtz file does not exist")
@@ -391,18 +426,27 @@ if __name__ == "__main__":
     # instantiate the class and run the prediction
     # get the output directory and the fasta name for the next step by running the method run of the prediction class
     ALFOpred = ALFOpred()
-    output_dir, fasta_name = ALFOpred.run(fastapath)
+    output_dir, fasta_name, job_id, preset = ALFOpred.run(fasta_path)
 
-    # choose the best model and process it
-    # instantiate the class and run the method choose_model and process_predict
-    procALFO = procALFO()
-    AFpdbModel_path = procALFO.choose_model(output_dir)
-    procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+    if preset == "monomer":
+        # choose the best model and process it
+        # instantiate the class and run the method choose_model and process_predict
+        procALFO = procALFO(job_id = ALFOpred.job_id)
+        AFpdbModel_path = procALFO.get_model(output_dir)
+        procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
 
-    # use dimple to do molecular replacement
-    # get the processed model and reflection data as arguments
-    # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
-    # instantiate the class and run the method runDIMPLE
-    processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
-    mrALFO = mrALFO()
-    mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, processedModel_file=processedModel_file, output_dir=output_dir)
+        # use dimple to do molecular replacement
+        # get the processed model and reflection data as arguments
+        # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
+        # instantiate the class and run the method runDIMPLE
+        processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
+        mrALFO = mrALFO(job_id = ALFOpred.job_id)
+        mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
+
+    else:
+        # use dimple to do molecular replacement
+        # get the processed model and reflection data as arguments
+        # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
+        # instantiate the class and run the method runDIMPLE
+        mrALFO = mrALFO(job_id = ALFOpred.job_id)
+        mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file="ranked_0.pdb", output_dir=output_dir)
