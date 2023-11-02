@@ -118,6 +118,8 @@ alphafold \
         --data_dir=$ALPHAFOLD_DATA_DIR
 ```
 
+The AlphaFold job script will be automatically adapted based on the number of sequences in the fasta input file, which indicates monomer or multimer proteins. So only the `--model_preset=multimer` will be changed accordingly.
+
 #### 1.2 Process the predicted model
 From the previous AlphaFold 2 predicted structures, the model with the highest pLDDT (confidence for per-residue estimate) is used as a search model for molecular replacement. Before the model can be used for that further processing of the model needs to be done. The pLDDT values are replaced by pseudo b-values, as higher pLDDT values are associated with higher confidence in the prediction. This would ultimately lead to wrong b-value estimation, where higher values mean worse resolution. The processing will then trim low confident part of the model. Optionally the model is split into domains, which might enhance the molecular replacement solution for large proteins.
 
@@ -151,7 +153,7 @@ The program will construct the following batch script and submit it to Slurm or 
 module purge
 module add gopresto CCP4/7.0.078-SHELX-ARP-8.0-17-PReSTO
 
-cp /data/staff/biomax/domfas/data/7QRZ/7QRZ.mtz alf_output/1478156/7QRZ
+cp /data/staff/biomax/user/data/7QRZ/7QRZ.mtz alf_output/1478156/7QRZ
 cd alf_output/1478156/7QRZ
 
 dimple ranked_0_processed.pdb 7QRZ.mtz dimpleMR
@@ -159,7 +161,7 @@ dimple ranked_0_processed.pdb 7QRZ.mtz dimpleMR
 
 The output of the pipeline is a refined model of the protein of interest and fitted into the electron density map. Since the AlphaFold yet produces different accurate models with rarely atomistic accurancy, further manual investigation of the model is needed. The model can be visualised with the CCP4 program Coot and refined here.
 
-The ouptut folder named alf_output contains the following subfolders and files for the example monomer protein 7QRZ and the example multimer protein 8HUA:
+The ouptut directory named alf_output contains the following subfolders and files for the example monomer protein 7QRZ would look like the following:
 ```
 └── 1478156
     └── 7QRZ
@@ -221,13 +223,15 @@ The ouptut folder named alf_output contains the following subfolders and files f
         └── unrelaxed_model_5.pdb
 ```
 
+The directory is structured with the job id on the first level and with another subfolder indicating the protein name. It contains the input file for the pipeline run, the logging error files as well as the predicted models in pdb format and additional files from the alphafold prediction, which are explained in more detail at https://github.com/google-deepmind/alphafold. The directory also includes the dimpleMR folder with log files, the final refined model in pdb format and the corresponding reflection data in mtz format after  molecular replacement and refinement.
+
 ## Edna2 implementation
 The edna2 is a self developed framework for running multiple tasks related to macromolecular X-ray crystallography at synchrotron research facilities like the ESRF or MAX IV Laboratory.
 
-edna2 needs to be seperately installed with using a conda environment.
+Edna2 needs to be seperately installed with using a conda environment. The environment uses Python 3.8.
 
 ### Requirements
-An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. The edna2 framework can also be run locally on a computer, but the program is designed to run on the HPC.
+An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. The edna2 framework can also be run locally on a computer, but the program is designed to run on the HPC. 
 
 #### Python packages
 - pathlib
@@ -280,14 +284,13 @@ Despite the pipeline, the edna2 framework has defined tasks which are run indepe
 
 All input files for the specific task are defined in a json format as a design choice. All output information and parsing will be ultimately done with json files. The json files are also used to communicate between the different tasks. The json files are stored in the folder structure of the task. 
 
-
 <br>
 
 To submit or start the specific task the EDNA2 framework is setup each time with defining the path and activating the conda environment [file name: start_sbatch.sh]:
 ```
 #!/bin/bash
-EDNA2_PATH=/data/staff/biomax/domfas/edna2_alphafold
-. /home/domfas/Miniconda3/bin/activate
+EDNA2_PATH=/data/staff/biomax/user/edna2_alphafold
+. /home/user/Miniconda3/bin/activate
 conda activate edna2       
 export EDNA2_SITE=MAXIV_BIOMAX
 export PATH=${EDNA2_PATH}/bin:$PATH
