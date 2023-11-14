@@ -71,6 +71,8 @@ The pipeline takes two input arguments, the fasta file of the protein of interes
 
 Run the pipeline with the following command and example input files:
 ```
+usage: AlphaFoldTask.py [-h] -f FASTA_PATH -m REFLECTIONDATA_PATH [-o OUTPUT] [-jp] [-pp]
+
 AlphaFold prediction pipeline
 
 optional arguments:
@@ -81,8 +83,11 @@ optional arguments:
                         Mtz file to do molecular replacement
   -o OUTPUT, --output OUTPUT
                         Output directory for the results
+  -jp, --just-predict   Only predict the structure, no molecular replacement
+  -pp, --predict-process
+                        Predict the structure and process it, no molecular replacement
 
-Example: python3 AlphaFoldTask.py -f fasta_file -m mtz_file -o output_directory Author: D. Fastus
+Example: python3 AlphaFoldTask.py -f fasta_file -m mtz_file -o output_directory
 ```
 
 #### 1.1 Run the AlphaFold prediction
@@ -163,10 +168,10 @@ The output of the pipeline is a refined model of the protein of interest and fit
 
 The ouptut directory named alf_output contains the following subfolders and files for the example monomer protein 7QRZ would look like the following:
 ```
-└── 1478156
+└── 1478156 <----------------- Job id for the AlphaFold prediction
     └── 7QRZ
-        ├── 1478161
-        ├── 1478162
+        ├── 1478161 <-- Job id for the processing task
+        ├── 1478162 <-- Job id for the dimple task
         ├── 7QRZ.mtz
         ├── alphafold_1478156.err
         ├── alphafold_1478156.out
@@ -184,22 +189,22 @@ The ouptut directory named alf_output contains the following subfolders and file
         │   ├── coot.sh
         │   ├── dimple.log
         │   ├── final.mmcif
-        │   ├── final.mtz
-        │   ├── final.pdb
+        │   ├── final.mtz <----------------- Final refined reflection data 
+        │   ├── final.pdb <----------------- Final refined model (after molecular replacement)
         │   ├── ini.pdb
         │   ├── jelly.mmcif
         │   ├── phaser.sol
         │   ├── run-coot.py
         │   ├── screen.log
         │   └── workflow.pickle
-        ├── features.pkl
+        ├── features.pkl <----------------- AlphaFold prediction features (additional information)
         ├── msas
         │   ├── bfd_uniclust_hits.a3m
         │   ├── mgnify_hits.sto
         │   ├── pdb_hits.hhr
         │   └── uniref90_hits.sto
-        ├── ranked_0.pdb
-        ├── ranked_0_processed.pdb
+        ├── ranked_0.pdb <----------------- best predicted model (highest pLDDT)
+        ├── ranked_0_processed.pdb <----------------- processed model
         ├── ranked_1.pdb
         ├── ranked_2.pdb
         ├── ranked_3.pdb
