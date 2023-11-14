@@ -49,6 +49,13 @@ parser.add_argument("-m", "--mtz", dest="reflectionData_path", required=True,
 parser.add_argument("-o", "--output", default="alf_output", required=False, 
                     help="Output directory for the results")
 
+
+parser.add_argument("-jp", "--just-predict", action="store_true", dest="just_predict", required=False, 
+                   help="Only predict the structure, no molecular replacement")
+parser.add_argument("-pp", "--predict-process", action="store_true", dest="predict_process", required=False, 
+                   help="Predict the structure and process it, no molecular replacement")
+
+
 # Parse arguments  
 args = parser.parse_args()
 
@@ -205,7 +212,7 @@ class ALFOpred():
             shutil.move(file, output_dir)
 
         # if the prediction was successful the script will continue and log a message
-        logger.info("The prediction was successful, starting processing of model...\n\n")
+        logger.info("The prediction was successful!\n\n")
 
 
         # return the output directory and the fasta name for the next step
@@ -431,22 +438,28 @@ if __name__ == "__main__":
     if preset == "monomer":
         # choose the best model and process it
         # instantiate the class and run the method choose_model and process_predict
-        procALFO = procALFO(job_id = ALFOpred.job_id)
-        AFpdbModel_path = procALFO.get_model(output_dir)
-        procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        if not args.just_predict or args.predict_process:
+            logger.info("Processing the best model from the prediction is running...")
+            procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+            AFpdbModel_path = procALFO.get_model(output_dir)
+            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        else:
+            logger.info("--just-predict is given, only the prediction was done!")
 
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
         # instantiate the class and run the method runDIMPLE
-        processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
-        mrALFO = mrALFO(job_id = ALFOpred.job_id)
-        mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
+        if not args.just_predict or not args.predict_process:
+            processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
+            mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
+            mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
 
     else:
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
         # instantiate the class and run the method runDIMPLE
-        mrALFO = mrALFO(job_id = ALFOpred.job_id)
-        mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file="ranked_0.pdb", output_dir=output_dir)
+        if not args.just_predict or not args.predict_process:
+            mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
+            mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file="ranked_0.pdb", output_dir=output_dir)
