@@ -11,9 +11,15 @@ from pathlib import Path
 import argparse
 import logging
 import shutil
+import gemmi
 import json
 import sys
 import os
+import re
+
+from Bio.PDB import PDBParser, PDBIO, Chain
+from Bio.PDB.Polypeptide import three_to_one
+from Bio import PDB
 
 # import module to monitor the SLURM jobs
 from utils import UtilsMonitor
@@ -48,6 +54,10 @@ parser.add_argument("-m", "--mtz", dest="reflectionData_path", required=True,
                     help="Mtz file to do molecular replacement")
 parser.add_argument("-o", "--output", default="alf_output", required=False, 
                     help="Output directory for the results")
+
+# alternatve provide pdb and mtz file
+parser.add_argument("-p", "--pdb", dest="pdb_path", required=False, 
+                    help="Path to pdb file to predict protein structure")
 
 
 parser.add_argument("-jp", "--just-predict", action="store_true", dest="just_predict", required=False, 
@@ -273,6 +283,42 @@ class procALFO():
         # return the best model file
         return best_model_file
 
+    def split_pdb_chains(self, pdb_file, pdb_name, output_dir):
+        parser = PDBParser()
+        structure = parser.get_structure('PDB', pdb_file)
+        io = PDBIO()
+
+        for chain in structure.get_chains():
+            chain_id = chain.get_id()
+            output_file = f"{output_dir}/{pdb_name}_{chain_id}.pdb"
+
+            # Create a new Structure
+            chain_structure = Chain.Chain(chain_id)
+            # Add all residues from the original chain to the new Structure
+            for residue in chain:
+                chain_structure.add(residue)
+
+            # Save the new Structure
+            io.set_structure(chain_structure)
+            io.save(output_file)
+
+        return output_dir
+    
+    def get_amino_acid_sequence(self, pdb_file, output_file):
+        parser = PDB.PDBParser()
+        structure = parser.get_structure('X', pdb_file)
+        with open(output_file, 'a') as file:
+            for model in structure:
+                for chain in model:
+                    sequence = ''
+                    for residue in chain:
+                        if PDB.is_aa(residue, standard=True):
+                            sequence += three_to_one(residue.get_resname())
+                    if sequence:  # Only write if the sequence is not empty
+                        header = f">{os.path.basename(pdb_file)}_Model{model.id}_Chain{chain.id}"
+                        file.write(header + "\n")
+                        file.write(sequence + "\n\n")
+            
     # method to process the best model from the prediction
     # the method process_predicted_model from phenix is used to process the model
     # the method takes the best model file and the output directory as arguments
@@ -387,7 +433,118 @@ class mrALFO():
 
         # if the prediction was successful the script will continue and log a message
         # inform that the pipeline is finished
-        logger.info("Molecular replacement was successfull, all done!")
+        logger.info("Molecular replacement with dimple was successfull, all done!")
+
+
+    # incase its a multimer the chains have to be splitted and processed individually
+    # since dimple can only take one pdb file as input, phenix phaser should be used, in specific MR_AUTO
+    # unfortunatelly refinement will be skipped
+    def runPHASER(self, jobName, reflectionData_file, Model_file, sequence_file, output_dir, mode='MR_AUTO', title='AlphaFold', root='phaserMR'):
+       
+        # prepare to split the model based on chains
+        pdbs = Model_file
+        sequences = sequence_file
+        identities = [1 for i in sequences]
+        
+        logger.info('Starting to construct ensembles')
+
+        
+        logger.info(f'Reading .mtz file: {reflectionData_file}')
+        mtz_file = reflectionData_file
+        
+        '''
+        f_col = next((col.label for col in mtz_file.columns if col.type == 'F'), None)
+        sigf_col = next((col.label for col in mtz_file.columns if col.type == 'Q'), None)
+        i_col = next((col.label for col in mtz_file.columns if col.type == 'J'), None)
+        sigi_col = next((col.label for col in mtz_file.columns if col.type == 'L'), None)
+
+        logger.info('Determining LABIn line based on available columns')
+        if i_col and sigi_col:
+            labin_line = f'LABIn I={i_col} SIGI={sigi_col}'
+        elif f_col and sigf_col:
+            labin_line = f'LABIn F={f_col} SIGF={sigf_col}'
+        else:
+            logger.error('No suitable columns found in .mtz file')
+            raise ValueError('No suitable columns found in .mtz file')
+        '''
+        
+        labin_line = 'LABIn I=IMEAN SIGF=SIGIMEAN'
+        
+        logger.info('Constructing Phaser script')
+        phaser_script = f'phaser << eof\nTITLE {title}\nMODE {mode}\nHKLIN {mtz_file}\n{labin_line}'
+
+
+        ensemble_lines = ''
+        composition_lines = ''
+        search_lines = ''
+
+        for pdb, sequence, identity in zip(pdbs, sequences, identities):
+            ensemble_lines += f'ENSEMBLE {os.path.splitext(pdb)[0]} PDBFILE {pdb} IDENTITY {identity}\n'
+            composition_lines += f'COMPOSITION PROTEIN SEQUENCE {sequence} NUM 1\n'
+            search_lines += f'SEARCH ENSEMBLE {os.path.splitext(pdb)[0]} NUM 1\n'
+
+        phaser_script += ensemble_lines + composition_lines + search_lines
+        phaser_script += f'ROOT {root} # not the default\neof'
+        
+        # name the sbatch file and write the script to the file
+        phaser_file = f"{jobName}_phaser.txt"
+
+        with open(phaser_file,"w") as file:
+            file.write(phaser_script)
+            file.close()
+
+        logger.info('Finished constructing Phaser script')
+            
+        # run the phaser script as a slurm job
+        script = "#!/usr/bin/env bash\n"
+
+        # setting up the cluster environment or job specifications
+        script += "#SBATCH --job-name=AF_phaser\n"
+        script += "#SBATCH --mem=0\n"
+        script += "#SBATCH --time=01-00:00\n"
+
+        # create a output and error file for the job
+        script += "#SBATCH --output=phaser_%j.out\n"
+        script += "#SBATCH --error=phaser_%j.err\n\n"
+
+        # load the phenix module and purge the current modules
+        script += "module purge\n"
+        script += "module add gopresto Phenix/1.20.1-4487-Rosetta-3.10-PReSTO-8.0\n\n"
+
+        # cd to the output directory where the prediction is done
+        script += f"cd {output_dir}\n"
+
+        # run phenix processing predicted model tool
+        # Replace values in B-factor field with estimated B values.
+        # Optionally remove low-confidence residues and split into domains.
+        script += f"phenix.phaser {jobName}_phaser.txt phaser.log "
+
+        # name the sbatch file and write the script to the file
+        shellFile = f"{jobName}_slurm.sh"
+
+        with open(shellFile,"w") as file:
+            file.write(script)
+            file.close()
+
+        # get the job id from the monitor and print the status of the job to stdout
+        job_id = UtilsMonitor.monitor_job(script=f"{jobName}_slurm.sh", name=f"DIMPLE MR ({jobName})")
+
+        # check if the prediction was successful
+        # only if the job id is an integer the prediction was successful otherwise there is no job id
+        try:
+            int(job_id)
+        except:
+            logger.error("Molecular replacement with DIMPLE was not succesfull")
+
+        # move the slurm output files to the output directory
+        move_file = [f"phaser_{job_id}.err", f"phaser_{job_id}.out"]
+        for file in move_file:
+            shutil.move(file, f"alf_output{self.alphafold_job_id}")
+
+        # if the prediction was successful the script will continue and log a message
+        # inform the user that the prediction was successful and the next step will be molecular replacement (dimple)
+        logger.info("Molecular replacement with phenix phaser was successfull, all done!")
+
 
 # main function to run the pipeline
 if __name__ == "__main__":
@@ -432,19 +589,54 @@ if __name__ == "__main__":
     # predict the model as a slurm job
     # instantiate the class and run the prediction
     # get the output directory and the fasta name for the next step by running the method run of the prediction class
-    ALFOpred = ALFOpred()
-    output_dir, fasta_name, job_id, preset = ALFOpred.run(fasta_path)
+    if not args.pdb_path:
+        ALFOpred = ALFOpred()
+        output_dir, fasta_name, job_id, preset = ALFOpred.run(fasta_path)
+    else:
+        output_dir = os.path.dirname(args.pdb_path)
+        
+        # check if it's a fasta file and get the name for the job
+        try:
+            with open(args.fasta_path, mode="r") as file:
+                line = file.read()
+
+                # reads the first line of the fasta file and check if it starts with a '>'
+                # if not the script will stop and give an error message, which will be logged
+                if not line.startswith('>'):
+                    logger.error("The input is not a fasta file!")
+                    sys.exit(1)
+
+                # if the first line starts with a '>', it will be counted how many '>' or sequences are in the file
+                # by that the script can determine if it's a monomer or multimer prediction and c hange the preset accordingly
+                else:
+                    if line.count('>') == 1:
+                        preset = "monomer"
+                    else:
+                        preset = "multimer"
+                    # get the name of the fasta file without the extension
+                    line = line.strip()
+                    fasta_name = line[1:5]
+                    
+        # if there is an error with the fasta file the script will stop and give an error message, which will be logged
+        # most likely the file doesn't exist or can't be opened
+        except Exception as e:
+            logger.error(f"{args} can not be open or does not exist!", exc_info=True)
+            sys.exit(1)
 
     if preset == "monomer":
         # choose the best model and process it
         # instantiate the class and run the method choose_model and process_predict
-        if not args.just_predict or args.predict_process:
-            logger.info("Processing the best model from the prediction is running...")
-            procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
-            AFpdbModel_path = procALFO.get_model(output_dir)
-            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        if not args.pdb_path:
+            if not args.just_predict or args.predict_process:
+                logger.info("Processing the best model from the prediction is running...")
+                procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+                AFpdbModel_path = procALFO.get_model(output_dir)
+                procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+            else:
+                logger.info("--just-predict is given, only the prediction was done!")
         else:
-            logger.info("--just-predict is given, only the prediction was done!")
+            AFpdbModel_path = args.pdb_path
+            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
 
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
@@ -456,10 +648,71 @@ if __name__ == "__main__":
             mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
 
     else:
+        # choose the best model and process it
+        # instantiate the class and run the method choose_model and process_predict
+        if not args.pdb_path:
+            if not args.just_predict or args.predict_process:
+                logger.info("Processing the best model from the prediction is running...")
+                procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+                AFpdbModel_path = procALFO.get_model(output_dir)
+                
+                """
+                chain_dir = f"{output_dir}/pdb_chains"
+                os.mkdir(chain_dir)
+                
+                procALFO.split_pdb_chains(pdb_file=AFpdbModel_path, pdb_name=fasta_name, output_dir=chain_dir)
+                
+                for chain_file in os.listdir(chain_dir):
+                    procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=chain_file, output_dir=output_dir)"""
+                    
+                procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+            else:
+                logger.info("--just-predict is given, only the prediction was done!")
+        else:
+            # Extracting the number from the file path
+            match = re.search(r"/(\d+)_", args.pdb_path)
+            job_id = match.group(1) if match else None
+            logger.info("Processing the best model from the prediction is running...")
+            procALFO = procALFO(alphafold_job_id = job_id)
+            AFpdbModel_path = args.pdb_path
+            
+            chain_dir = f"{output_dir}/pdb_chains"
+            if not os.path.exists(chain_dir):
+               os.mkdir(chain_dir)
+            
+            procALFO.split_pdb_chains(pdb_file=args.pdb_path, pdb_name=fasta_name, output_dir=chain_dir)
+            
+            for chain_file in os.listdir(chain_dir):
+                procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=chain_file, output_dir=chain_dir)
+            
+            for chain_file in os.listdir(chain_dir):
+                if chain_file.endswith("_processed.pdb"):
+                    full_path = os.path.join(chain_dir, chain_file)
+                    procALFO.get_amino_acid_sequence(pdb_file=full_path, output_file=f"{chain_dir}/{chain_file}.seq")
+                    
+            Model_file = []
+            sequence_file = []
+            for chain_file in os.listdir(chain_dir):
+                if chain_file.endswith("_processed.pdb"):
+                    full_path_pdb = os.path.join(chain_dir, chain_file)
+                    Model_file.append(full_path_pdb)
+                
+                if chain_file.endswith("_processed.pdb.seq"):
+                    full_path_seq = os.path.join(chain_dir, chain_file)
+                    sequence_file.append(full_path_seq)
+                    
+            if not args.just_predict or not args.predict_process:
+                processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
+                mrALFO = mrALFO(alphafold_job_id = job_id)
+                mrALFO.runPHASER(jobName=f"{fasta_name}_phas", reflectionData_file=mtz_file, Model_file=Model_file,
+                                 sequence_file=sequence_file, output_dir=output_dir)
+                            
+            
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
         # instantiate the class and run the method runDIMPLE
         if not args.just_predict or not args.predict_process:
+            processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
             mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
-            mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file="ranked_0.pdb", output_dir=output_dir)
+            mrALFO.runDIMPLE(jobName=f"{fasta_name}_phas", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)

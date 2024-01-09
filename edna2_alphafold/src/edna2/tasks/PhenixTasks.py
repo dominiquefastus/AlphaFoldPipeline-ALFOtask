@@ -24,6 +24,7 @@ __license__ = "MIT"
 __date__ = "26/07/2019"
 
 import pathlib
+import gemmi
 import gzip
 import os
 
@@ -268,3 +269,77 @@ class PhenixProcessPredictedModelTask(AbstractTask):
                 outData['jobComplete'] = True
 
         return outData
+    
+class PhenixPhaserTask(AbstractTask):
+    """
+    This task runs phenix.phaser and constructs the Phaser script using the construct_ensembles function
+    """
+        
+    def construct_phaser_script(self, inData: dict):
+        """
+        Constructs the Phaser script based on input JSON data and saves it to a file.
+        """
+        script_content = ["phaser << eof"]
+        script_content.append(f"TITLe {inData['title']}")
+        script_content.append(f"MODE {inData['mode']}")
+        for mtzFile in inData['mtzFiles']:
+            script_content.append(f"HKLIn {mtzFile['mtzFilePath']}")
+            labin_line = f"LABIn"
+            if mtzFile['labin_I']:
+                labin_line += f" I={mtzFile['labin_I']}"
+            if mtzFile['labin_SIGI']:
+                labin_line += f" SIGI={mtzFile['labin_SIGI']}"
+            if mtzFile['labin_F']:
+                labin_line += f" F={mtzFile['labin_F']}"
+            if mtzFile['labin_SIGF']:
+                labin_line += f" SIGF={mtzFile['labin_SIGF']}"
+            script_content.append(labin_line)
+        for ensemble in inData['ensembles']:
+            script_content.append(f"ENSEmble {ensemble['ensemble1']} PDB {ensemble['pdb']} IDENtity {ensemble['identity']}")
+            script_content.append(f"COMPosition PROTein SEQuence {ensemble['sequence']} NUM {ensemble['num']}")
+        script_content.append(f"ROOT {inData['root']}")
+        script_content.append("eof")
+        script_path = self.getWorkingDirectory() / 'PhenixPhaserScript.sh'
+        with open(script_path, 'w') as file:
+            file.write('\n'.join(script_content))
+        
+        return script_path
+    
+    def run(self, inData: dict):
+        # Construct the command line script
+        script_path = self.construct_phaser_script(inData)
+        
+        def run(self, inData):
+            if os.environ.get('PHENIX', None) is None:
+                commandLine = 'source /mxn/groups/sw/mxsw/env_setup/phenix_env.sh \n'
+            else:
+                commandLine = ''
+                logger.info(f"PHENIX version is {os.environ.get('PHENIX_VERSION', None)}")
+        
+        # Execute the script
+        commandLine += 'phenix.phaser '
+        commandLine += script_path
+        # commandLine += ' '
+
+        logPath = self.getWorkingDirectory() / 'PhenixProcPM.log'
+        self.runCommandLine(commandLine, logPath=logPath)
+        if logPath.exists():
+            with open(str(logPath)) as f:
+                logText = f.read()
+        else:
+            logger.error(f"Log file {logPath} does not exist")
+        
+        logger.info("Command line: {0}".format(commandLine))
+
+        outData = self.parseProcessPredictedModel(logText)
+        
+
+        return outData
+        # Check for success and return output data
+        if script_path.exists():
+            with open(str(script_path)) as f:
+                script_content = f.read()
+            return {"script": script_content}
+        else:
+            logger.error(f"Script file {script_path} does not exist")
+            return {"error": "Script execution failed"}
