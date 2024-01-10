@@ -8,6 +8,8 @@ Small program to quickly fetch data from the PDB database, including:
 
 All files needed to run the molecular replacement pipeline and comparison.
 
+
+Author:     D. Fastus
 """
 from urllib.request import urlretrieve
 from urllib.error import HTTPError

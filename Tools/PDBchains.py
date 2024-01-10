@@ -1,3 +1,12 @@
+#!/usr/bin/env python
+
+""" 
+Small program to quickly split a PDB file into multiple PDB files with only one chain.
+
+
+Author:     D. Fastus
+"""
+
 import argparse
 from Bio import PDB
 
