@@ -456,6 +456,16 @@ if __name__ == "__main__":
             mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
 
     else:
+        # choose the best model and process it
+        # instantiate the class and run the method choose_model and process_predict
+        if not args.just_predict or args.predict_process:
+            logger.info("Processing the best model from the prediction is running...")
+            procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+            AFpdbModel_path = procALFO.get_model(output_dir)
+            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        else:
+            logger.info("--just-predict is given, only the prediction was done!")
+            
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
