@@ -11,8 +11,10 @@ from pathlib import Path
 import argparse
 import logging
 import shutil
+import math
 import json
 import sys
+import re
 import os
 
 # import module to monitor the SLURM jobs
@@ -49,12 +51,19 @@ parser.add_argument("-m", "--mtz", dest="reflectionData_path", required=True,
 parser.add_argument("-o", "--output", default="alf_output", required=False, 
                     help="Output directory for the results")
 
+# alternatve provide pdb and mtz file
+parser.add_argument("-p", "--pdb", dest="pdb_path", required=False, 
+                    help="Path to pdb file to predict protein structure")
 
+# option to just predict or predict and process the model
 parser.add_argument("-jp", "--just-predict", action="store_true", dest="just_predict", required=False, 
                    help="Only predict the structure, no molecular replacement")
 parser.add_argument("-pp", "--predict-process", action="store_true", dest="predict_process", required=False, 
                    help="Predict the structure and process it, no molecular replacement")
 
+# option to tidy up temporary files
+parser.add_argument("-t", "--tidy", action="store_true", dest="tidy", required=False, 
+                   help="Tidy up temporary files")
 
 # Parse arguments  
 args = parser.parse_args()
@@ -64,13 +73,17 @@ args = parser.parse_args()
 
 # the pipeline is divided in three steps represented by three classes
 # class ALFOpred: initiate the alphafold prediction as a slurm job by using the installed alphafold module on the server
+# class procALFO: # process the best model from the prediction with phenix.process_predicted_model or implemented version of it
+# class mrALFO: # do molecular replacement and refinement with dimple
+
 # alphafold is a deep learning based method for protein structure prediction and available through: 
 # https://github.com/google-deepmind/alphafold 
 class ALFOpred():
     """
-    Initiates a AlphaFold prediction SLURM job
+    Initiates a AlphaFold prediction SLURM job and automatically sets the monomer or multimer preset
     """
 
+    # base id where everything is stored
     def __init__(self):
         self.job_id = None
 
@@ -223,10 +236,10 @@ class ALFOpred():
 # for further molecular replacement and refinement the model is processed with phenix
 # phenix is a software for the automated determination of molecular structures using X-ray crystallography and other methods
 # the method process_predicted_model is used to process the model and is available through: https://www.phenix-online.org/documentation/reference/process_predicted_model.html
-# basically the method replaces the B-factor values with estimated B values and removes low-confidence residues and split into domains if needed
+# basically the method replaces the B-factor values with estimated B values and removes low-confidence residues and (optional splits into domains, not used here)
 class procALFO():
     """
-    AlphaFold predicted model selection and preprocessing
+    AlphaFold predicted model selection and processing with phenix.process_predicted_model or implemented version of it
     """
 
     def __init__(self, alphafold_job_id):
@@ -238,6 +251,7 @@ class procALFO():
     # alphafold ranks the models automatically from best to worst and the best model is always ranked as 0
     def get_model(self, infile):
         try:
+            """
             # open the ranking_debug.json file and load the json file
             json_file = os.path.join(infile, "ranking_debug.json")
             file = open(json_file)
@@ -257,12 +271,13 @@ class procALFO():
             except Exception as e:
                 logger.error("The scores are not available for the predicted models", exc_info=True)
                 logger.info(e)
-
+                
+            file.close()
+            """
+            
             # Aphafold ranks automatically the models from best to worst
             best_model_file = f"ranked_0.pdb"
             logger.info(f"The file {best_model_file} will be used as a search model for molecular replacement!")
-
-            file.close()
 
         # if there is an error with the json file the script will stop and give an error message, which will be logged
         except Exception as e:
@@ -271,12 +286,57 @@ class procALFO():
 
         # AFpdbModel_path = infile = os.path.join(infile, f"{best_model_file}")
         # return the best model file
-        return best_model_file
+        return os.path.abspath(best_model_file)
+
+    # adapted and changed version of phenix.process_predicted_model as below, which doesn't split the model into domains or chains
+    # the formulas derived from the paper of Oeffner et al: https://journals.iucr.org/d/issues/2022/11/00/ai5009/ 
+    def process_and_trim_pdb(self, output_dir):
+        try:
+            # read the pdb file and get the lines
+            with open(f'{output_dir}/ranked_0.pdb', 'r') as file:
+                lines = file.readlines()
+
+            # loop over the lines and get the plddt score
+            new_lines = []
+            for line in lines:
+                # Only process ATOM and HETATM lines
+                if line.startswith("ATOM") or line.startswith("HETATM"):
+                    plddt = float(line[60:66].strip())
+                    # Convert to scale of 0 to 1 if necessary
+                    if plddt > 1:  
+                        plddt /= 100
+                    # Trimming residues with pLDDT < 70
+                    if plddt < 0.7:  
+                        continue
+                    # Calculate delta or rmsd from the plddt score
+                    delta = 1.5 * math.exp(4 * (0.7 - plddt)) 
+                    # Calculate B-factor from delta
+                    b_factor = (8 * math.pi**2 * delta**2) / 3
+                    # Replace pseudo B-factor in line where plddt was
+                    # The pseudo B-factor is a float with 6.2f format
+                    # a new line is created with the new pseudo B-factor
+                    new_line = line[:60] + f"{b_factor:6.2f}" + line[66:]
+                    new_lines.append(new_line)
+
+            # write the new lines to a new pdb file based on the new pseudo B-factor
+            with open(f'{output_dir}/ranked_0_processed.pdb', 'w') as file:
+                file.writelines(new_lines)
+                
+            shutil.move('job.log', output_dir)
+            
+            # if the processing of the model was successful the script will continue and log a message
+            # inform the user that the processing of the model was successful and the next step will be molecular replacement (dimple)
+            logger.info("Processing was succesful, starting molecular replacement...\n\n")
+                
+        # raise an error if the processing of the model was not successful
+        except Exception as e:
+            logger.error("Processing was not succesfull")
+            logger.info(e)
 
     # method to process the best model from the prediction
     # the method process_predicted_model from phenix is used to process the model
     # the method takes the best model file and the output directory as arguments
-    def process_predict(self, jobName, AFpdbModel_path, output_dir):
+    def phenix_process_predict(self, jobName, AFpdbModel_path, output_dir):
         script = "#!/usr/bin/env bash\n"
 
         # setting up the cluster environment or job specifications
@@ -292,7 +352,7 @@ class procALFO():
         script += "module purge\n"
         script += "module add gopresto Phenix/1.20.1-4487-Rosetta-3.10-PReSTO-8.0\n\n"
 
-        # cd to the output directory where the prediction is done
+        # cd to the output directory where the processing of the model is done
         script += f"cd {output_dir}\n"
 
         # run phenix processing predicted model tool
@@ -310,8 +370,8 @@ class procALFO():
         # get the job id from the monitor and print the status of the job to stdout
         job_id = UtilsMonitor.monitor_job(script=f"{jobName}_slurm.sh", name=f"Processing ({jobName})")
 
-        # check if the prediction was successful
-        # only if the job id is an integer the prediction was successful otherwise there is no job id
+        # check if the processing of the model was successful
+        # only if the job id is an integer the processing of the model was successful otherwise there is no job id
         try:
             int(job_id)
         except Exception as e:
@@ -323,8 +383,8 @@ class procALFO():
         for file in move_file:
             shutil.move(file, f"alf_output/{self.alphafold_job_id}")
 
-        # if the prediction was successful the script will continue and log a message
-        # inform the user that the prediction was successful and the next step will be molecular replacement (dimple)
+        # if the processing of the model was successful the script will continue and log a message
+        # inform the user that the processing of the model was successful and the next step will be molecular replacement (dimple)
         logger.info("Processing was succesful, starting molecular replacement...\n\n")
 
 # for molecular replacement and refinement the program DIMPLE is used
@@ -384,6 +444,10 @@ class mrALFO():
         move_file = [f"dimple_{job_id}.err", f"dimple_{job_id}.out"]
         for file in move_file:
             shutil.move(file, f"alf_output{self.alphafold_job_id}")
+            
+        # potential file was created, which is identical to the screen.log file
+        if os.path.exists("alf_outputNone"):
+            os.remove("alf_outputNone")
 
         # if the prediction was successful the script will continue and log a message
         # inform that the pipeline is finished
@@ -391,30 +455,6 @@ class mrALFO():
 
 # main function to run the pipeline
 if __name__ == "__main__":
-    '''
-    # if the script want to e run without argparse:
-
-    # check for positional argument as fasta file
-    # check if the fasta file exists
-    # if not the script will stop and give an error message, which will be logged
-    if len(sys.argv) < 2:
-        logger.error("Missing fasta file..")
-        sys.exit("Error missing argument! Please provide a fasta file")
-
-    args = sys.argv[1]
-    fastapath = Path(args)
-    if not fastapath.is_file():
-        logger.error("Path to fasta file does not exist")
-        sys.exit("Path to fasta file does not exist")
-    
-    # check for positional argument as mtz file
-    # check if the mtz file exists
-    # if not the script will stop and give an error message, which will be logged
-    elif len(sys.argv) < 3:
-        logger.error("Missing mtz file..")
-        sys.exit("Error missing argument! Please provide a mtz file")
-    '''
-
     # check if the fasta file exists
     # if not the script will stop and give an error message, which will be logged
     fasta_file = args.fasta_path
@@ -432,44 +472,116 @@ if __name__ == "__main__":
     # predict the model as a slurm job
     # instantiate the class and run the prediction
     # get the output directory and the fasta name for the next step by running the method run of the prediction class
-    ALFOpred = ALFOpred()
-    output_dir, fasta_name, job_id, preset = ALFOpred.run(fasta_path)
+    if not args.pdb_path:
+        ALFOpred = ALFOpred()
+        output_dir, fasta_name, job_id, preset = ALFOpred.run(fasta_path)
+    else:
+        output_dir = os.path.dirname(args.pdb_path)
+        
+          # check if it's a fasta file and get the name for the job
+        try:
+            with open(args.fasta_path, mode="r") as file:
+                line = file.read()
+
+                # reads the first line of the fasta file and check if it starts with a '>'
+                # if not the script will stop and give an error message, which will be logged
+                if not line.startswith('>'):
+                    logger.error("The input is not a fasta file!")
+                    sys.exit(1)
+
+                # if the first line starts with a '>', it will be counted how many '>' or sequences are in the file
+                # by that the script can determine if it's a monomer or multimer prediction and c hange the preset accordingly
+                else:
+                    if line.count('>') == 1:
+                        preset = "monomer"
+                    else:
+                        preset = "multimer"
+                    # get the name of the fasta file without the extension
+                    line = line.strip()
+                    fasta_name = line[1:5]
+        
+        # if there is an error with the fasta file the script will stop and give an error message, which will be logged
+        # most likely the file doesn't exist or can't be opened
+        except Exception as e:
+            logger.error(f"{args} can not be open or does not exist!", exc_info=True)
+            sys.exit(1)
+
 
     if preset == "monomer":
         # choose the best model and process it
         # instantiate the class and run the method choose_model and process_predict
-        if not args.just_predict or args.predict_process:
-            logger.info("Processing the best model from the prediction is running...")
-            procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
-            AFpdbModel_path = procALFO.get_model(output_dir)
-            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        if not args.pdb_path:
+            if not args.just_predict or args.predict_process:
+                logger.info("Processing the best model from the prediction is running...")
+                procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+                mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
+                AFpdbModel_path = procALFO.get_model(output_dir)
+                
+                procALFO.process_and_trim_pdb(output_dir=output_dir)
+                # procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+
+            else:
+                logger.info("--just-predict is given, only the prediction was done!")
         else:
-            logger.info("--just-predict is given, only the prediction was done!")
+            # Extracting the number from the file path
+            match = re.search(r"/(\d+)_", args.pdb_path)
+            job_id = match.group(1) if match else None
+            procALFO = procALFO(alphafold_job_id = job_id)
+            mrALFO = mrALFO(alphafold_job_id = job_id)
+            AFpdbModel_path = args.pdb_path
+            
+            procALFO.process_and_trim_pdb(output_dir=output_dir)
+            # procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+
 
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
         # instantiate the class and run the method runDIMPLE
         if not args.just_predict or not args.predict_process:
-            processedModel_file = AFpdbModel_path.replace(".pdb","_processed.pdb")
-            mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
+            processedModel_file = f'{output_dir}/ranked_0_processed.pdb'
             mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
 
     else:
-        # choose the best model and process it
-        # instantiate the class and run the method choose_model and process_predict
-        if not args.just_predict or args.predict_process:
-            logger.info("Processing the best model from the prediction is running...")
-            procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
-            AFpdbModel_path = procALFO.get_model(output_dir)
-            procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+        if not args.pdb_path:
+            if not args.just_predict or args.predict_process:
+                logger.info("Processing the best model from the prediction is running...")
+                procALFO = procALFO(alphafold_job_id = ALFOpred.job_id)
+                mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
+                AFpdbModel_path = procALFO.get_model(output_dir)
+                procALFO.process_and_trim_pdb(output_dir=output_dir)
+                # procALFO.process_predict(jobName=f"{fasta_name}_proc", AFpdbModel_path=AFpdbModel_path, output_dir=output_dir)
+            else:
+                logger.info("--just-predict is given, only the prediction was done!")
         else:
-            logger.info("--just-predict is given, only the prediction was done!")
-            
+            # Extracting the number from the file path
+            match = re.search(r"/(\d+)_", args.pdb_path)
+            job_id = match.group(1) if match else None
+            logger.info("Processing the best model from the prediction is running...")
+            procALFO = procALFO(alphafold_job_id = job_id)
+            mrALFO = mrALFO(alphafold_job_id = job_id)
+            procALFO.process_and_trim_pdb(output_dir=output_dir)
+
         # use dimple to do molecular replacement
         # get the processed model and reflection data as arguments
         # as the processed model has a new name the path to the processed model is created by changing the path name of the best model
         # instantiate the class and run the method runDIMPLE
         if not args.just_predict or not args.predict_process:
-            mrALFO = mrALFO(alphafold_job_id = ALFOpred.job_id)
-            mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file="ranked_0.pdb", output_dir=output_dir)
+            processedModel_file = f'{output_dir}/ranked_0_processed.pdb'
+            mrALFO.runDIMPLE(jobName=f"{fasta_name}_dimp", reflectionData_file=mtz_file, Model_file=processedModel_file, output_dir=output_dir)
+            
+    # tidy up temporary files
+    # if the option --tidy is given the temporary files will be deleted
+    # this includes slurm scripts 
+    if args.tidy:
+        logger.info("Tidying up temporary files...")
+        # remove the slurm scripts
+        slurm_scripts = [f"AFpred_{fasta_name}_slurm.sh", f"{fasta_name}_proc_slurm.sh", f"{fasta_name}_dimp_slurm.sh",
+                         '*.err', '*.out', '*.log']
+        for script in slurm_scripts:
+            if os.path.exists(script):
+                os.remove(script)
+            else:
+                continue
+            
+        logger.info("Temporary files are removed!")
