@@ -1,7 +1,40 @@
 #!/usr/bin/env python3
 
 """
-This is a automated python based SLURM job submitting pipeline for AlphaFold prediction.
+This is a automated python based SLURM job submitting pipeline for AlphaFold prediction. 
+
+It serves as a wrapper for the AlphaFold prediction and uses the installed AlphaFold module on the server.
+It allows to predict the structure of a protein from a fasta file and do molecular replacement and refinement with DIMPLE.
+
+Users can provide a fasta file and a mtz file to do molecular replacement and refinement with DIMPLE. 
+All classes are also implemented as seperat tasks in the edna framework and can be used as such.
+
+The pipeline is divided in three steps represented by three classes:
+- class ALFOpred: initiate the alphafold prediction as a slurm job by using the installed alphafold module on the server
+- class procALFO: process the best model from the prediction with phenix.process_predicted_model or implemented version of it
+- class mrALFO: do molecular replacement and refinement with dimple
+
+To run the pipeline following arguments are necessary or optional:
+usage: AlphaFoldTask.py [-h] -f FASTA_PATH -m REFLECTIONDATA_PATH [-o OUTPUT] [-p PDB_PATH] [-jp] [-pp] [-t]
+
+AlphaFold prediction pipeline
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FASTA_PATH, --fasta FASTA_PATH
+                        Path to fasta file to predict protein structure
+  -m REFLECTIONDATA_PATH, --mtz REFLECTIONDATA_PATH
+                        Mtz file to do molecular replacement
+  -o OUTPUT, --output OUTPUT
+                        Output directory for the results
+  -p PDB_PATH, --pdb PDB_PATH
+                        Path to pdb file to predict protein structure
+  -jp, --just-predict   Only predict the structure, no molecular replacement
+  -pp, --predict-process
+                        Predict the structure and process it, no molecular replacement
+  -t, --tidy            Tidy up temporary files
+
+Example: python3 AlphaFoldTask.py -f fasta_file -m mtz_file -o output_directory 
 
 Author:     D. Fastus
 """
@@ -70,11 +103,6 @@ args = parser.parse_args()
 
 # the pipeline is designed in a object oriented way to keep the code clean and readable but als keep the structure 
 # of the edna framework for easier implementation 
-
-# the pipeline is divided in three steps represented by three classes
-# class ALFOpred: initiate the alphafold prediction as a slurm job by using the installed alphafold module on the server
-# class procALFO: # process the best model from the prediction with phenix.process_predicted_model or implemented version of it
-# class mrALFO: # do molecular replacement and refinement with dimple
 
 # alphafold is a deep learning based method for protein structure prediction and available through: 
 # https://github.com/google-deepmind/alphafold 
