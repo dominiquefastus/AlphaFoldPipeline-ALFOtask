@@ -1,3 +1,24 @@
+#!/usr/bin/env python3
+
+"""
+Script for plotting the pLDDT scores and B-factors for multiple PDB files. 
+This script will plot the pLDDT scores and B-factors for each residue in the PDB file
+based on a boxplot comparison. It runs like this:
+
+usage: plddt_bval.py [-h] -p ALPHAFOLD_PDB REFERENCE_PDB [-l LABEL]
+
+Process AlphaFold and reference PDB files.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p ALPHAFOLD_PDB REFERENCE_PDB, --pair ALPHAFOLD_PDB REFERENCE_PDB
+                        Specify a pair of PDB files
+  -l LABEL, --label LABEL
+                        Label for each pair
+                        
+Author:     D. Fastus
+"""
+
 import argparse
 import sys
 import matplotlib.pyplot as plt
@@ -7,33 +28,33 @@ from Bio import PDB
 
 def extract_plddt(file_path):
     """
-    Extract pLDDT scores from an AlphaFold PDB file.
+    Extracts pLDDT scores from an AlphaFold PDB file.
     This function should be adapted based on the specific format of your PDB files.
     """
+    
     # Placeholder for pLDDT extraction logic
     plddt_scores = np.random.uniform(50, 100, 100)  # Replace with actual extraction logic
     return plddt_scores
 
 def extract_b_factors(file_path):
     """
-    Extract B-factors from a standard PDB file using Biopython.
+    Extracts B-factors from a standard PDB file using Biopython.
     """
+    
     parser = PDB.PDBParser()
     structure = parser.get_structure('structure', file_path)
 
-    b_factors = []
-    for model in structure:
-        for chain in model:
-            for residue in chain:
-                for atom in residue:
-                    b_factors.append(atom.get_bfactor())
+    # Extract B-factors from each atom
+    # This can be adapted based on the specific format of your PDB files
+    b_factors = [atom.get_bfactor() for model in structure for chain in model for residue in chain for atom in residue]
 
     return b_factors
 
 def generate_box_plot(data, total_pairs, labels=None):
     """
-    Generate a single box plot for all pairs, with specific colors, adjusted spacing, and a legend.
+    Generates a single box plot for all pairs, with specific colors, adjusted spacing, and a legend.
     """
+    
     # Colors
     colors = [(167/255, 85/255, 104/255), (71/255, 148/255, 149/255)]
 
@@ -74,7 +95,10 @@ def process_pairs(pairs, labels):
     """
     Process each pair of files and generate a single combined plot.
     """
+    
     all_data = []
+    # Extract data from each pair
+    # generate box plot for each pair
     for af_file, ref_file in pairs:
         af_data = extract_plddt(af_file)
         ref_data = extract_b_factors(ref_file)
@@ -85,6 +109,7 @@ def process_pairs(pairs, labels):
     generate_box_plot(all_data, len(pairs), labels)
 
 def main():
+    # add simple arguments for parser
     parser = argparse.ArgumentParser(description="Process AlphaFold and reference PDB files.")
     parser.add_argument('-p', '--pair', action='append', nargs=2, metavar=('ALPHAFOLD_PDB', 'REFERENCE_PDB'), help='Specify a pair of PDB files', required=True)
     parser.add_argument('-l', '--label', action='append', help='Label for each pair', default=[])
