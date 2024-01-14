@@ -5,10 +5,11 @@ Author:     Dominique Fastus
 Date:       2021-10-01
 
 Github:     https://github.com/dominiquefastus/AlphaFoldPipeline-ALFOtask
-Tested:     MAX IV Cluster, LUNARC architecture (stabile)
-                    COSMOS, LUNARC architecture (to be updated)
+Tested:     MAX IV Cluster, LUNARC architecture (stable)
 ```
-In this research project a standardised AlphaFold 2-based molecular replacement strategy was developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory. The pipenline is designed to run on the MAX IV specific high perfomance cluster (HPC) which is build upon the LUNARC architecture. The biomolecular structure solution pipeline is programmed with the mind of user interaction at the beamline. Regardingly the pipeline is developed as a standalone program as well as implented in the on-site used edna2 framework. Therefore the project and repisotory is divided into two parts. The first part is the standalone program which is designed to run locally, but submit the individual computer extensive or program specific tasks to the MAX IV HPC. The second part is the implementation of the standalone program in the edna2 framework, which is directly run on the HPC and interacts with the MAX IV related computational infrastracture.
+In this research project a standardised AlphaFold 2-based molecular replacement strategy was developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory. The pipenline is designed to run on the MAX IV specific high perfomance cluster (HPC) which is build upon the LUNARC architecture. The biomolecular structure solution pipeline is programmed with the mind of user interaction at the beamline. Regardingly, the pipeline is developed as a standalone program, as well as implented in the on-site used edna2 framework. Therefore, the project and repository is divided into two parts. The first part is the standalone program, which is designed to run locally, but submit the individual computer extensive or program specific tasks to the MAX IV HPC. The second part is the implementation of the standalone program in the edna2 framework, which is directly run on the HPC and interacts with the MAX IV and beamline related computational infrastracture.
+
+The scripts also provide general plotting for molecular replacement results of different metrics and tools to interact and manipulate pdb files that are useful outside of the pipeline.
 
 The standalone and edna2 implemented program are both designed to run the following tasks:
 - AlphaFold 2 prediction (monomer or multimer)
@@ -16,9 +17,6 @@ The standalone and edna2 implemented program are both designed to run the follow
 - Molecular replacement with the best model
 - Refinement of the molecular replacement solution
 
-The pipeline is also visualised in the following figure:
-
-![AlphaFold pipeline](figure)
 
 ## Requirements
 To run the pipeline following resources and requirements are necessary to produce confident prediction:
@@ -71,11 +69,11 @@ The pipeline takes two input arguments, the fasta file of the protein of interes
 
 Run the pipeline with the following command and example input files:
 ```
-usage: AlphaFoldTask.py [-h] -f FASTA_PATH -m REFLECTIONDATA_PATH [-o OUTPUT] [-jp] [-pp]
+usage: AlphaFoldTask.py [-h] -f FASTA_PATH -m REFLECTIONDATA_PATH [-o OUTPUT] [-p PDB_PATH] [-jp] [-pp] [-t]
 
 AlphaFold prediction pipeline
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -f FASTA_PATH, --fasta FASTA_PATH
                         Path to fasta file to predict protein structure
@@ -83,9 +81,12 @@ optional arguments:
                         Mtz file to do molecular replacement
   -o OUTPUT, --output OUTPUT
                         Output directory for the results
+  -p PDB_PATH, --pdb PDB_PATH
+                        Path to pdb file to predict protein structure
   -jp, --just-predict   Only predict the structure, no molecular replacement
   -pp, --predict-process
                         Predict the structure and process it, no molecular replacement
+  -t, --tidy            Tidy up temporary files
 
 Example: python3 AlphaFoldTask.py -f fasta_file -m mtz_file -o output_directory
 ```
@@ -126,9 +127,11 @@ alphafold \
 The AlphaFold job script will be automatically adapted based on the number of sequences in the fasta input file, which indicates monomer or multimer proteins. So only the `--model_preset=multimer` will be changed accordingly.
 
 #### 1.2 Process the predicted model
-From the previous AlphaFold 2 predicted structures, the model with the highest pLDDT (confidence for per-residue estimate) is used as a search model for molecular replacement. Before the model can be used for that further processing of the model needs to be done. The pLDDT values are replaced by pseudo b-values, as higher pLDDT values are associated with higher confidence in the prediction. This would ultimately lead to wrong b-value estimation, where higher values mean worse resolution. The processing will then trim low confident part of the model. Optionally the model is split into domains, which might enhance the molecular replacement solution for large proteins.
+From the previous AlphaFold 2 predicted structures, the model with the highest pLDDT (confidence for per-residue estimate) is used as a search model for molecular replacement. Before the model can be used for that, further processing of the model needs to be done. The pLDDT values are replaced by pseudo b-values, as higher pLDDT values are associated with higher confidence in the prediction. This would ultimately lead to wrong b-value or b-factor estimations, where higher values mean worse resolution. The processing will then trim low confident part of the model. Optionally the model is split into domains, which might enhance the molecular replacement solution for large proteins.
 
-The program will construct the following batch script and submit it to Slurm or the HPC:
+The processing is based on the method suggested by Oeffner et all [3] and was implemented with python into the pipeline. Whereas proviously realyingc on the Phenix program, the processing is now done with python calculations. The implemented processing lacks the possibility to split the model into domains, thus the phenix program is still provided if this is needed.
+
+The phenix program would construct the following batch script and submit it to Slurm or the HPC:
 ```
 #SBATCH --job-name=AF_processing
 #SBATCH --mem=0
@@ -143,8 +146,12 @@ cd alf_output/1478156/7QRZ
 phenix.process_predicted_model ranked_0.pdb 
 ```
 
+3. Oeffner RD, Croll TI, Millán C, Poon BK, Schlicksup CJ, Read RJ, et al. Putting AlphaFold models to work with phenix.process_predicted_model and ISOLDE. Acta Cryst D. 2022 Nov 1;78(11):1303–14. 
+
+Again for the basic processing thee inbuild version of phenix.process_predicted_model is enough to archieve good phasing results.
+
 #### 1.3 Molecular replacement & refinement
-For the molecular replacement and refinement the Dimpe pipeline from the CCP4 program is run automatically. 
+For the molecular replacement and refinement the Dimple pipeline from the CCP4 program is run automatically. 
 
 The program will construct the following batch script and submit it to Slurm or the HPC:
 ```
@@ -206,26 +213,15 @@ The ouptut directory named alf_output contains the following subfolders and file
         ├── ranked_0.pdb <----------------- best predicted model (highest pLDDT)
         ├── ranked_0_processed.pdb <----------------- processed model
         ├── ranked_1.pdb
-        ├── ranked_2.pdb
-        ├── ranked_3.pdb
-        ├── ranked_4.pdb
+        ├── ....pdb
         ├── ranking_debug.json
         ├── relaxed_model_1.pdb
-        ├── relaxed_model_2.pdb
-        ├── relaxed_model_3.pdb
-        ├── relaxed_model_4.pdb
-        ├── relaxed_model_5.pdb
+        ├── ....pdb
         ├── result_model_1.pkl
-        ├── result_model_2.pkl
-        ├── result_model_3.pkl
-        ├── result_model_4.pkl
-        ├── result_model_5.pkl
+        ├── ....pkl
         ├── timings.json
         ├── unrelaxed_model_1.pdb
-        ├── unrelaxed_model_2.pdb
-        ├── unrelaxed_model_3.pdb
-        ├── unrelaxed_model_4.pdb
-        └── unrelaxed_model_5.pdb
+        └── ....pdb
 ```
 
 The directory is structured with the job id on the first level and with another subfolder indicating the protein name. It contains the input file for the pipeline run, the logging error files as well as the predicted models in pdb format and additional files from the alphafold prediction, which are explained in more detail at https://github.com/google-deepmind/alphafold. The directory also includes the dimpleMR folder with log files, the final refined model in pdb format and the corresponding reflection data in mtz format after  molecular replacement and refinement.
@@ -333,7 +329,7 @@ python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask/Al
 ```
 
 #### 2.2 Run the processing task
-The Process predicted model or procpred task is identical to the standalone program. The task is run within the Phenix task with the following commands and example input file:
+The Process predicted model or procpred task is run with the phenix program and does not provide the faster, simpler inbuild python version yet. The task is run within the Phenix task with the following commands and example input file:
 
 JSON file for the example input file of the task to be executed:
 ```
@@ -348,7 +344,6 @@ The slurm batch script is setup as following for the process predicted model tas
 ```
 #!/bin/bash
 #SBATCH --job-name=Phenixtask
-#SBATCH --partition=v100
 #SBATCH --mem=0
 #SBATCH --time=01-00:00
 #SBATCH --output=procpred_%j.out
@@ -362,11 +357,22 @@ python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks/Proc
 
 ```
 
+#### 2.2 Run the molecular replacement task
+The Dimple task is run with the CCP4 program and does not provide the faster, simpler inbuild python version yet. The task is run within the CCP4 task with the following commands and example input file:
+
+JSON file for the example input file of the task to be executed:
+```
+
+{
+    "PDB_file": "//data/alf_output/1468429/1JKB/ranked_0_processed.pdb",
+    "MTZ_file": "/data//data/7QRZ/7QRZ.mtz"
+}
+```
+
 The slurm batch script is setup as following for the dimple task [file name: dim_sbatch.sh] by sourcing the start_sbatch.sh file and running the python test execution script:
 ```
 #!/bin/bash
 #SBATCH --job-name=Dimpletask
-#SBATCH --partition=v100
 #SBATCH --mem=0
 #SBATCH --time=01-00:00
 #SBATCH --output=dimple_%j.out
@@ -379,7 +385,7 @@ cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks
 python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/DimpleTask_exec_test.py
 ```
 
-The actual test task is then run like following:
+The actual test tasks is then run like following:
 ```
 sbatch [alf_/ppm_/dim_]sbatch.sh
 ```
