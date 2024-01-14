@@ -363,41 +363,41 @@ class UniqueifyTask(AbstractTask):
         self.isSuccess = Path(self.outputFile).exists()
 
         return outData
-
+    
 class DimpleTask(AbstractTask):
-        def run(self, inData):
-            self.doSubmit = inData.get("doSubmit", False)
-            ccp4setup = UtilsConfig.get('CCP4', 'ccp4setup')
-            logger.debug(f'CCP4 Setup: {ccp4setup}')
-            if ccp4setup is None:
-                logger.warning('CCP4 setup not found!')
-                commandLine = ""
-            else:
-                commandLine = ". " + ccp4setup + '\n'
+    """
+    This task runs dimple to replace B-factors and (optinally) break the model into domains
+    """
 
-            self.inputMtz = inData.get('inputMtz')
-            self.inputPdb = inData.get('inputPdb')
-            if self.inputPdb is None or self.inputMtz is None:
-                logger.error("Model PDB and MTZ are required:")
-                logger.error(f"PDB: {self.inputPdb}, MTZ: {self.inputMtz}")
-                self.setFailure()
-            self.setLogFileName('dimple.log')
+    def run(self, inData):
+        output_Dir = self._workingDirectory 
+        outData = {}
+        if os.environ.get('CCP4', None) is None:
+            commandLine = 'source /mxn/groups/sw/mxsw/env_setup/ccp4_env.sh \n'
+        else:
+            commandLine = ''
+            logger.info(f"CCP4 version is {os.environ.get('CCP4_VERSION', None)}")
 
-            commandLine += 'dimple '
-            commandLine += f'{self.inputMtz} {self.inputPdb} {self.getWorkingDirectory()}'
+        commandLine += 'dimple '
+        commandLine += f'{inData["PDB_file"]} '
+        commandLine += f'{inData["MTZ_file"]} '
+        commandLine += f'{output_Dir}'
 
-            logger.info("Running ccp4/dimple...")
+        logPath = self.getWorkingDirectory() / 'dimple.log'
+        self.runCommandLine(commandLine, logPath=logPath)
+        with open(str(logPath)) as f:
+            logText = f.read()
+        
+        logger.info("Command line: {0}".format(commandLine))
 
-            if self.doSubmit:
-                self.submitCommandLine(commandLine)
-            else:
-                self.runCommandLine(commandLine)
-            # outData["uniqueifyOutputMtz"] = self.outputFile
-            # self.isSuccess = Path(self.outputFile).exists()
+        # outData = self.parseProcessPredictedModel(logPath)
+        
+        if Path(f"{output_Dir}/final.pdb").exists() and Path(f"{output_Dir}/final.mtz").exists():
+            outData["isSuccess"] = True
 
-            return 
-
-
-
-
-
+        return outData
+    
+    def parseDimpleLog(self, logPath):
+        if logPath.exists():
+            with open(str(logPath)) as f:
+                log = f.read()
