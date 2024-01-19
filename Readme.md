@@ -362,7 +362,6 @@ The Dimple task is run with the CCP4 program and does not provide the faster, si
 
 JSON file for the example input file of the task to be executed:
 ```
-
 {
     "PDB_file": "//data/alf_output/1468429/1JKB/ranked_0_processed.pdb",
     "MTZ_file": "/data//data/7QRZ/7QRZ.mtz"
