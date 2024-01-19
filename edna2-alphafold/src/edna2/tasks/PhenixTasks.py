@@ -287,3 +287,105 @@ class PhenixProcessPredictedModelTask(AbstractTask):
                 outData["jobComplete"] = True
 
         return outData
+
+class PhenixProcessPredictedModelTask(AbstractTask):
+    """
+    This task runs phenix.process_predicted_model to replace B-factors and (optinally) break the model into domains
+    """
+
+    def run(self, inData):
+        if os.environ.get('PHENIX', None) is None:
+            commandLine = 'source /mxn/groups/sw/mxsw/env_setup/phenix_env.sh \n'
+        else:
+            commandLine = ''
+            logger.info(f"PHENIX version is {os.environ.get('PHENIX_VERSION', None)}")
+
+        commandLine += 'phenix.process_predicted_model '
+        commandLine += inData['PDB_file']
+        # commandLine += ' '
+
+        logPath = self.getWorkingDirectory() / 'PhenixProcPM.log'
+        self.runCommandLine(commandLine, logPath=logPath)
+        if logPath.exists():
+            with open(str(logPath)) as f:
+                logText = f.read()
+        else:
+            logger.error(f"Log file {logPath} does not exist")
+        
+        logger.info("Command line: {0}".format(commandLine))
+
+        outData = self.parseProcessPredictedModel(logText)
+        
+
+        return outData
+
+    def parseProcessPredictedModel(self, logText):
+        outData = {}
+
+        for line in logText.split("\n"):
+            if line.find("Working directory:") != -1:
+                outData['workingDirectory'] = line.split(":")[1].strip()
+            elif line.find("Found model,") != -1:
+                outData['processedModel'] = line.split(",")[1].strip()
+            elif line.find("B-value field") != -1:
+                outData['B-value'] = line.split(" ")[2:]
+            elif line.find("Maximum B-Value") != -1:
+                outData['maximumB-value'] = line.split(":")[1]
+            elif line.find("Maximum rmsd") != -1:
+                outData['maximumRmsd'] = line.split(" ")[3:4]
+            elif line.find("Clusters:") != -1:
+                outData['Clusters'] = line.split(":")[1]
+            elif line.find("Threshold:") != -1:
+                outData['Threshold'] = line.split(":")[1]
+            elif line.find("Job complete") != -1:
+                outData['jobComplete'] = True
+
+        return outData
+    
+class TrimAndProcessTask(AbstractTask):
+    """
+    This task trims a predicted model by parameter and converts plDDT value 
+    to pseudo b-factors. Similar to PhenixProcessPredictedModelTask, but
+    works for all chains at once. 
+    """
+        
+    def run(self, inData):
+        PDB_to_process = inData.get("PDB_file")
+        output_Dir = self._workingDirectory 
+
+        try:
+            with open(PDB_to_process, 'r') as file:
+                lines = file.readlines()
+
+
+            new_lines = []
+            for line in lines:
+
+                if line.startswith("ATOM") or line.startswith("HETATM"):
+                    plddt = float(line[60:66].strip())
+
+                    if plddt > 1:  
+                        plddt /= 100
+
+                    if plddt < 0.7:  
+                        continue
+
+                    delta = 1.5 * math.exp(4 * (0.7 - plddt)) 
+
+                    b_factor = (8 * math.pi**2 * delta**2) / 3
+                    new_line = line[:60] + f"{b_factor:6.2f}" + line[66:]
+                    new_lines.append(new_line)
+            
+                with open(f'ranked_0_processed.pdb', 'w') as file:
+                    file.writelines(new_lines)
+                    
+        except Exception as e:
+            logger.error("Processing was not succesfull")
+            logger.info(e)
+            
+        outData = {}
+        outData['outputDir'] = output_Dir
+        
+        outData['isSuccess'] = pathlib.Path.exists(f'{output_Dir}/ranked_0_processed.pdb')
+
+        return outData
