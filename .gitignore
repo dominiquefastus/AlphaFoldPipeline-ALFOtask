@@ -2,3 +2,5 @@ data/
 slurm_alphafold/alf_output/
 slurm_alphafold/utils/__pycache__/UtilsFileCheck.cpython-38.pyc
 slurm_alphafold/utils/__pycache__/UtilsFileCheck.cpython-39.pyc
+slurm_alphafold/.DS_Store
+.DS_Store
