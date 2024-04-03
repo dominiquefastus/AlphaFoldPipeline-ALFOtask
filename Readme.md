@@ -139,7 +139,7 @@ phenix.process_predicted_model ranked_0.pdb
 
 3. Oeffner RD, Croll TI, Millán C, Poon BK, Schlicksup CJ, Read RJ, et al. Putting AlphaFold models to work with phenix.process_predicted_model and ISOLDE. Acta Cryst D. 2022 Nov 1;78(11):1303–14. 
 
-Again for the basic processing thee inbuild version of phenix.process_predicted_model is enough to archieve good phasing results.
+Again for the basic processing of the inbuild version of phenix.process_predicted_model or the implemented version of it is enough to archieve good phasing results. *The implementation is prefererred as it avoids chain and domain splitting for multimers.
 
 #### 1.3 Molecular replacement & refinement
 For the molecular replacement and refinement the Dimple pipeline from the CCP4 program is run automatically. 
@@ -402,7 +402,7 @@ sbatch [alf_/ppm_/dim_]sbatch.sh
 Results from the standalone or edna2 implemented pipeline.
 
 #### Python packages
-The environment uses Python >=3.8. Only standard python packages and self created utility functions are used in the standalone program:
+The environment uses Python >=3.8. The following packages are used in the plotting scripts:
 ```
 - matplotlib                3.6.3                    pypi_0    pypi
 - biopandas                 0.4.1                    pypi_0    pypi
