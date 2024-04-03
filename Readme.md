@@ -24,9 +24,11 @@ To run the pipeline following resources and requirements are necessary to produc
 ### External programs installed on the HPC
 
 MAX IV Computer Cluster:
-- AlphaFold 2.1.1 
-- Phenix 1.20.1
-- CCP4 7.0.078
+```
+- AlphaFold             2.1.1 
+- Phenix                1.20.1
+- CCP4                  7.0.078
+```
 
 The programs are installed on the HPC and can be loaded with the module system and is therefore not necessary to be installed by the user. The module system is a software environment management system for the HPC. The commands to load the programs is explained in the sections.  
 
@@ -47,22 +49,11 @@ Slurm is a workload cluster management and job scheduling system, which is used 
 An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. 
 
 #### Python packages
-- pathlib
-- argparse
-- subprocess
-- logging
-- shutil
-- json
-- time
-- sys
-- os
-
-<br>
-Self created utility functions:
-
+The environment uses Python =3.8.15. Only standard python packages and self created utility functions are used in the standalone program:
+```python
 - from utils import UtilsMonitor
 - from utils import UtilsFileCheck
-
+```
 
 ### 1. Run pipeline
 The pipeline takes two input arguments, the fasta file of the protein of interest and the mtz file of the experimental data containing the information of the electron density map. 
@@ -229,18 +220,30 @@ The directory is structured with the job id on the first level and with another 
 ## Edna2 implementation
 The edna2 is a self developed framework for running multiple tasks related to macromolecular X-ray crystallography at synchrotron research facilities like the ESRF or MAX IV Laboratory.
 
-Edna2 needs to be seperately installed with using a conda environment. The environment uses Python 3.8.
+Edna2 needs to be seperately installed with using a conda environment. The environment uses Python =3.8.15.
 
 ### Requirements
 An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. The edna2 framework can also be run locally on a computer, but the program is designed to run on the HPC. 
 
 #### Python packages
-- pathlib
-- logging
-- shutil
-- json
-- sys
-- os
+Edna2 requires several python packages to be installed in the conda environment. The packages are listed in the edna2-alphafold/requirements.txt file or below:
+```
+- cctbx-base                2023.5           py38h81fdc0f_0    conda-forge
+- graypy                    2.1.0                    pypi_0    pypi
+- h5py                      3.7.0                    pypi_0    pypi
+- hdf5plugin                4.1.1                    pypi_0    pypi
+- matplotlib                3.6.3                    pypi_0    pypi
+- xmltodict                 0.13.0                   pypi_0    pypi
+- suds-jurko                0.6             py38h578d9bd_1005    conda-forge
+- jsonschema                4.17.3                   pypi_0    pypi
+- numpy                     1.24.3           py38hf6e8229_1 
+- fabio                     2022.12.1                pypi_0    pypi
+- requests                  2.28.2                   pypi_0    pypi
+- distro                    1.8.0                    pypi_0    pypi
+- scipy                     1.10.0                   pypi_0    pypi
+- billiard                  4.1.0                    pypi_0    pypi
+```
+
 
 ### Installation
 To install the edna2 framework, a conda environment need to be setup:
@@ -276,8 +279,14 @@ Use the edna2_alphafold branch which contaions the AlphaFold implementation and 
 
 - After that edna2 can be installed with the setup.py file in this environment:
 ```
-(env-name) $ cd /path/to/edna2
-(env-name) $ python setup.py install
+(edna2) $ cd /path/to/edna2
+(edna2) $ python setup.py install
+```
+- Alternatively, the edna2 environment can be created with the environment.yml file:
+```
+(base) $ conda env create -f environment.yml
+(edna2) $ cd /path/to/edna2
+(edna2) $ python setup.py install
 ```
 
 ### Execution of tasks
@@ -387,6 +396,69 @@ python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/Dimple
 The actual test tasks is then run like following:
 ```
 sbatch [alf_/ppm_/dim_]sbatch.sh
+```
+## Utilsplots for visualisation
+### Requirements
+Results from the standalone or edna2 implemented pipeline.
+
+#### Python packages
+The environment uses Python >=3.8. Only standard python packages and self created utility functions are used in the standalone program:
+```
+- matplotlib                3.6.3                    pypi_0    pypi
+- biopandas                 0.4.1                    pypi_0    pypi
+- biopython                 1.81             py38h1de0b5d_0    conda-forge
+- pandas                    2.0.3            py38h1128e8f_0 
+- numpy                     1.24.3           py38hf6e8229_1  
+```
+#### Run the plotting
+- To plot the b-factors along the residue positions of the protein, the following command can be used:
+```
+usage: bfactor_plot.py [-h] [-l LABELS [LABELS ...]] [-a] pdb_files [pdb_files ...]
+
+Plot B-factors for multiple PDB files.
+
+positional arguments:
+  pdb_files             Paths to PDB files
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -l LABELS [LABELS ...], --labels LABELS [LABELS ...]
+                        Labels for the PDB files
+  -a, --align           Align residues across different PDB files
+```
+- To plot the boxplot of the plDDT values of the AlphaFold prediction against the b-factors of the reference models, the following command can be used:
+```
+usage: plddt_bval.py [-h] -p ALPHAFOLD_PDB REFERENCE_PDB [-l LABEL]
+
+Process AlphaFold and reference PDB files.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -p ALPHAFOLD_PDB REFERENCE_PDB, --pair ALPHAFOLD_PDB REFERENCE_PDB
+                        Specify a pair of PDB files
+  -l LABEL, --label LABEL
+                        Label for each pair
+```
+- To plot the rfree, LLG and TFZ values of the molecular replacement results, the following command can be used:
+```
+usage: MR_metrics.py [-h] logfile
+
+Plot data from dimple.log file.
+
+positional arguments:
+  logfile     Path to the dimple.log file
+```
+- To plot the overall metric statistics of the prediction and molecular replacement results, the following command can be used:
+```
+usage: overall_MR.py [-h] csv_file
+
+Generate protein metrics plots from CSV data.
+
+positional arguments:
+  csv_file    Path to the CSV file containing protein metrics.
+
+optional arguments:
+  -h, --help  show this help message and exit
 ```
 
 <br>
