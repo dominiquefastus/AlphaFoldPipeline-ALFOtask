@@ -414,7 +414,17 @@ positional arguments:
 optional arguments:
   -h, --help  show this help message and exit
 ```
+#### Supplementary scripts
+- To plot the AlphaFold pLDDT for the residues and the PAE for multimers an adaptet script from AlphaFold and friends on the HPC. (n.d.). Retrieved May 6, 2024, from https://elearning.vib.be/courses/alphafold/ (https://github.com/jasperzuallaert/VIBFold/blob/main/visualize_alphafold_results.py) is used with the following command:
+```
+usage: prediction_plot.py [-h] --input_dir INPUT_DIR [--name NAME] [--output_dir OUTPUT_DIR]
 
+options:
+  -h, --help            show this help message and exit
+  --input_dir INPUT_DIR
+  --name NAME
+  --output_dir OUTPUT_DIR
+  ```
 <br>
 <br>
 
