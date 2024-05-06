@@ -7,11 +7,11 @@ Date:       2021-10-01
 Github:     https://github.com/dominiquefastus/AlphaFoldPipeline-ALFOtask
 Tested:     MAX IV Cluster, LUNARC architecture (stable)
 ```
-In this research project a standardised AlphaFold 2-based molecular replacement strategy was developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory. The pipenline is designed to run on the MAX IV specific high perfomance cluster (HPC) which is build upon the LUNARC architecture. The biomolecular structure solution pipeline is programmed with the mind of user interaction at the beamline. Regardingly, the pipeline is developed as a standalone program, as well as implented in the on-site used edna2 framework. Therefore, the project and repository is divided into two parts. The first part is the standalone program, which is designed to run locally, but submit the individual computer extensive or program specific tasks to the MAX IV HPC. The second part is the implementation of the standalone program in the edna2 framework, which is directly run on the HPC and interacts with the MAX IV and beamline related computational infrastracture.
+In this research project a standardised AlphaFold 2-based molecular replacement strategy was developed and implemented in an existing biomolecule structure solution pipeline at MAX IV Laboratory. The pipeline is designed to run on the MAX IV specific high perfomance cluster (HPC) which is build upon the LUNARC architecture. The biomolecular structure solution pipeline is programmed with the mind of user interaction. Regardingly, the pipeline is developed as a standalone program, as well as implented in the MAXIV used EDNA2 framework. Therefore, the project and repository is divided into two parts. The first part is the standalone program, which is designed to run locally, but submit the individual computer extensive or program specific tasks to the MAX IV HPC. The second part is the implementation of the standalone program in the EDNA2 framework, which is directly run on the HPC and interacts with the MAX IV and beamline related computational infrastracture.
 
 The scripts also provide general plotting for molecular replacement results of different metrics and tools to interact and manipulate pdb files that are useful outside of the pipeline.
 
-The standalone and edna2 implemented program are both designed to run the following tasks:
+The standalone and EDNA2 implemented pipelines are both designed to run the following tasks:
 - AlphaFold 2 prediction (monomer or multimer)
 - Processing of the predicted model
 - Molecular replacement with the best model
@@ -19,7 +19,7 @@ The standalone and edna2 implemented program are both designed to run the follow
 
 
 ## Requirements
-To run the pipeline following resources and requirements are necessary to produce confident prediction:
+To run the pipeline, following resources and requirements are necessary to produce the solutions:
 
 ### External programs installed on the HPC
 
@@ -30,18 +30,20 @@ MAX IV Computer Cluster:
 - CCP4                  7.0.078
 ```
 
-The programs are installed on the HPC and can be loaded with the module system and is therefore not necessary to be installed by the user. The module system is a software environment management system for the HPC. The commands to load the programs is explained in the sections.  
+The programs are installed on the HPC and can be loaded with the module system and are therefore not necessary to be installed by the user. The module system is a software environment management system for the HPC. The commands to load the programs are explained in the sections.  
 
 ### Dependency on PReSTO and EasyBuild
 "PReSTO is a software stack for integrated structural biology adapted to high performance computing resources at the National Academic Infrastructure for Su-
 percomputing in Sweden (NAISS) and the local MAX IV compute cluster" [1]. PReSTO is used in the project to load the modules Phenix and CCP4. The exact loading of the software with PReSTO is explained in the sections.
 
-The easybuild [2] is a software build and installation framework for HPC. The easybuild is used in the project to load the module AlphaFold. The exact loading of the software with easybuild is explained in the sections. The easybuild framework implemented AlphaFold 2.1.1, seemed to be the most stable and reliable build of AlphaFold on the cluster, but this should updated to the PReSTO version in the future.
+Easybuild [2] is a frameworl to build and install software on the HPC. Easybuild is used in the project to load the module AlphaFold. The exact loading of the software with easybuild is explained in the sections. The easybuild framework implemented AlphaFold version 2.1.1, seemed to be the most stable and reliable build of AlphaFold on the cluster, but this should updated to the PReSTO version in the future.
 
-1 PReSTO_docs_2023_Tallberg.pdf. (n.d.). Retrieved November 1, 2023, from https://www.nsc.liu.se/support/presto/PReSTO_docs_2023_Tallberg.pdf<br>2 EasyBuild—Building software with ease. (n.d.). Retrieved November 1, 2023, from https://docs.easybuild.io/
+1 PReSTO_docs_2023_Tallberg.pdf. (n.d.). Retrieved November 1, 2023, from https://www.nsc.liu.se/support/presto/PReSTO_docs_2023_Tallberg.pdf
+<br>2 EasyBuild—Building software with ease. (n.d.). Retrieved November 1, 2023, from https://docs.easybuild.io/
+
 
 ### Slurm workload manager
-Slurm is a workload cluster management and job scheduling system, which is used in the project to submit and monitor the individual computing tasks to the HPC. This eases the parallel run of multiple jobs or tasks and allows to destribute the computing ressources better to multiple users.
+Slurm is a workload cluster management and job scheduling system, which is used in the project to submit and monitor the individual computing tasks to the HPC. This eases the parallel run of multiple jobs or tasks and allows to better destribute the computing ressources to multiple users.
 
 ## Standalone program
 
@@ -115,14 +117,14 @@ alphafold \
         --data_dir=$ALPHAFOLD_DATA_DIR
 ```
 
-The AlphaFold job script will be automatically adapted based on the number of sequences in the fasta input file, which indicates monomer or multimer proteins. So only the `--model_preset=multimer` will be changed accordingly.
+The AlphaFold job script will be automatically adapted based on the number of sequences in the fasta input file, which indicates monomer or multimer proteins. So only `--model_preset=multimer` will be changed accordingly.
 
 #### 1.2 Process the predicted model
-From the previous AlphaFold 2 predicted structures, the model with the highest pLDDT (confidence for per-residue estimate) is used as a search model for molecular replacement. Before the model can be used for that, further processing of the model needs to be done. The pLDDT values are replaced by pseudo b-values, as higher pLDDT values are associated with higher confidence in the prediction. This would ultimately lead to wrong b-value or b-factor estimations, where higher values mean worse resolution. The processing will then trim low confident part of the model. Optionally the model is split into domains, which might enhance the molecular replacement solution for large proteins.
+From the previous AlphaFold 2 predicted structures, the model with the highest pLDDT (confidence for per-residue estimate) is used as a search model for molecular replacement. Before the model can be used for that, further processing of the model needs to be done. The processing will also trim predicted parts with low confidence (pLDDT <70) of the model. 
 
-The processing is based on the method suggested by Oeffner et all [3] and was implemented with python into the pipeline. Whereas proviously realyingc on the Phenix program, the processing is now done with python calculations. The implemented processing lacks the possibility to split the model into domains, thus the phenix program is still provided if this is needed.
+The processing is based on the method suggested by Oeffner et all [3] and was implemented with python into the pipeline. Whereas proviously realying on the Phenix program, the processing is now done with python calculations. The implemented processing lacks the possibility to split the model into domains, thus the phenix program is still provided if this is needed.
 
-The phenix program would construct the following batch script and submit it to Slurm or the HPC:
+To run the processing with Phenix, the pipeline would construct the following batch script and submit it to Slurm or the HPC:
 ```
 #SBATCH --job-name=AF_processing
 #SBATCH --mem=0
@@ -139,7 +141,7 @@ phenix.process_predicted_model ranked_0.pdb
 
 3. Oeffner RD, Croll TI, Millán C, Poon BK, Schlicksup CJ, Read RJ, et al. Putting AlphaFold models to work with phenix.process_predicted_model and ISOLDE. Acta Cryst D. 2022 Nov 1;78(11):1303–14. 
 
-Again for the basic processing of the inbuild version of phenix.process_predicted_model or the implemented version of it is enough to archieve good phasing results. *The implementation is prefererred as it avoids chain and domain splitting for multimers.
+For the basic processing of the inbuild version of phenix.process_predicted_model, the implemented version without domain splitting is enough to archieve good search models for phasing and is prefered.
 
 #### 1.3 Molecular replacement & refinement
 For the molecular replacement and refinement the Dimple pipeline from the CCP4 program is run automatically. 
@@ -161,72 +163,24 @@ cd alf_output/1478156/7QRZ
 
 dimple ranked_0_processed.pdb 7QRZ.mtz dimpleMR
 ```
+<br>
+The output of the pipeline is a refined model of the protein of interest based on the fitting to the electron density map. Since the AlphaFold produces different accurate models with varying atomistic accurancy, further manual investigation of parts or the full model is needed. 
+<br>
+<br>
+The directory is structured with the job id on the first level and with another subfolder indicating the protein name. It contains the input file for the pipeline run, the logging error files as well as the predicted models in pdb format and additional files from the alphafold prediction, which are explained in more detail at https://github.com/google-deepmind/alphafold. The directory also includes the dimpleMR folder with log files, the final refined model in pdb format and the corresponding reflection data in mtz format after molecular replacement and refinement.
 
-The output of the pipeline is a refined model of the protein of interest and fitted into the electron density map. Since the AlphaFold yet produces different accurate models with rarely atomistic accurancy, further manual investigation of the model is needed. The model can be visualised with the CCP4 program Coot and refined here.
+## EDNA2 implementation
+EDNA2 [4] is a self developed framework for running multiple tasks related to macromolecular X-ray crystallography at synchrotron research facilities like the ESRF or MAX IV Laboratory.
 
-The ouptut directory named alf_output contains the following subfolders and files for the example monomer protein 7QRZ would look like the following:
-```
-└── 1478156 <----------------- Job id for the AlphaFold prediction
-    └── 7QRZ
-        ├── 1478161 <-- Job id for the processing task
-        ├── 1478162 <-- Job id for the dimple task
-        ├── 7QRZ.mtz
-        ├── alphafold_1478156.err
-        ├── alphafold_1478156.out
-        ├── dimpleMR
-        │   ├── 01-rwcontents.log
-        │   ├── 02-phaser.log
-        │   ├── 03-unique.log
-        │   ├── 04-freerflag.log
-        │   ├── 05-cad.log
-        │   ├── 06-refmac5_jelly.log
-        │   ├── 07-refmac5_restr.log
-        │   ├── 08-find-blobs.log
-        │   ├── blob1-coot.py
-        │   ├── blob2-coot.py
-        │   ├── coot.sh
-        │   ├── dimple.log
-        │   ├── final.mmcif
-        │   ├── final.mtz <----------------- Final refined reflection data 
-        │   ├── final.pdb <----------------- Final refined model (after molecular replacement)
-        │   ├── ini.pdb
-        │   ├── jelly.mmcif
-        │   ├── phaser.sol
-        │   ├── run-coot.py
-        │   ├── screen.log
-        │   └── workflow.pickle
-        ├── features.pkl <----------------- AlphaFold prediction features (additional information)
-        ├── msas
-        │   ├── bfd_uniclust_hits.a3m
-        │   ├── mgnify_hits.sto
-        │   ├── pdb_hits.hhr
-        │   └── uniref90_hits.sto
-        ├── ranked_0.pdb <----------------- best predicted model (highest pLDDT)
-        ├── ranked_0_processed.pdb <----------------- processed model
-        ├── ranked_1.pdb
-        ├── ....pdb
-        ├── ranking_debug.json
-        ├── relaxed_model_1.pdb
-        ├── ....pdb
-        ├── result_model_1.pkl
-        ├── ....pkl
-        ├── timings.json
-        ├── unrelaxed_model_1.pdb
-        └── ....pdb
-```
+EDNA2 needs to be seperately installed with using a conda environment. The environment uses Python =3.8.15.
 
-The directory is structured with the job id on the first level and with another subfolder indicating the protein name. It contains the input file for the pipeline run, the logging error files as well as the predicted models in pdb format and additional files from the alphafold prediction, which are explained in more detail at https://github.com/google-deepmind/alphafold. The directory also includes the dimpleMR folder with log files, the final refined model in pdb format and the corresponding reflection data in mtz format after  molecular replacement and refinement.
-
-## Edna2 implementation
-The edna2 is a self developed framework for running multiple tasks related to macromolecular X-ray crystallography at synchrotron research facilities like the ESRF or MAX IV Laboratory.
-
-Edna2 needs to be seperately installed with using a conda environment. The environment uses Python =3.8.15.
+[4] Incardona, M.-F., Bourenkov, G. P., Levik, K., Pieritz, R. A., Popov, A. N., & Svensson, O. (2009). EDNA: A framework for plugin-based applications applied to X-ray experiment online data analysis. Journal of Synchrotron Radiation, 16(6), 872–879. https://doi.org/10.1107/S0909049509036681
 
 ### Requirements
-An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. The edna2 framework can also be run locally on a computer, but the program is designed to run on the HPC. 
+An access to the MAX IV HPC is needed, which is generally granted to users and scientists at MAX IV Laboratory. The EDNA2 framework can also be run locally on a computer, but the program is designed to run on the HPC. 
 
 #### Python packages
-Edna2 requires several python packages to be installed in the conda environment. The packages are listed in the edna2-alphafold/requirements.txt file or below:
+EDNA2 requires several python packages to be installed in the conda environment. The packages are listed in the edna2-alphafold/requirements.txt file or below:
 ```
 - cctbx-base                2023.5           py38h81fdc0f_0    conda-forge
 - graypy                    2.1.0                    pypi_0    pypi
@@ -234,7 +188,7 @@ Edna2 requires several python packages to be installed in the conda environment.
 - hdf5plugin                4.1.1                    pypi_0    pypi
 - matplotlib                3.6.3                    pypi_0    pypi
 - xmltodict                 0.13.0                   pypi_0    pypi
-- suds-jurko                0.6             py38h578d9bd_1005    conda-forge
+- suds-jurko                0.6           py38h578d9bd_1005    conda-forge
 - jsonschema                4.17.3                   pypi_0    pypi
 - numpy                     1.24.3           py38hf6e8229_1 
 - fabio                     2022.12.1                pypi_0    pypi
@@ -246,7 +200,7 @@ Edna2 requires several python packages to be installed in the conda environment.
 
 
 ### Installation
-To install the edna2 framework, a conda environment need to be setup:
+To install the EDNA2 framework, a conda environment need to be setup:
 
 - Download and install miniconda:
 ```
@@ -256,52 +210,52 @@ $ bash Miniconda3-latest-Linux-x86_64.sh
 
 - Create a conda environment with specific python version:
 ```
-(base) $ conda create -n edna2 python=3.8
+(base) $ conda create -n EDNA2 python=3.8
 ```
 
 - Activate the conda environment, noticable by the name in front of the command line:
 ```
-(base) $ conda activate edna2
-(edna2) $
+(base) $ conda activate EDNA2
+(EDNA2) $
 ```
 
-- Clone the edna2 repository from the github:
+- Clone the EDNA2 repository from the github:
 ```
-(edna2) $ git clone git@github.com:aaronfinke/edna2.git
-(edna2) $ cd edna2
+(EDNA2) $ git clone git@github.com:aaronfinke/EDNA2.git
+(EDNA2) $ cd EDNA2
 ```
 
-Use the edna2_alphafold branch which contaions the AlphaFold implementation and a yaml setup file.
+Use the EDNA2_alphafold branch which contaions the AlphaFold implementation and a yaml setup file.
 - Install necessary packages:
 ```
-(edna2) $ conda install -c conda-forge --file requirements.txt
+(EDNA2) $ conda install -c conda-forge --file requirements.txt
 ```
 
-- After that edna2 can be installed with the setup.py file in this environment:
+- After that EDNA2 can be installed with the setup.py file in this environment:
 ```
-(edna2) $ cd /path/to/edna2
-(edna2) $ python setup.py install
+(EDNA2) $ cd /path/to/EDNA2
+(EDNA2) $ python setup.py install
 ```
-- Alternatively, the edna2 environment can be created with the environment.yml file:
+- Alternatively, the EDNA2 environment can be created with the environment.yml file:
 ```
 (base) $ conda env create -f environment.yml
-(edna2) $ cd /path/to/edna2
-(edna2) $ python setup.py install
+(EDNA2) $ cd /path/to/EDNA2
+(EDNA2) $ python setup.py install
 ```
 
 ### Execution of tasks
-Despite the pipeline, the edna2 framework has defined tasks which are run independently and produce their own folder structure. An independent node needs to be set up to run the tasks on. This could be improved with more automation in the future like using the inbuild edna2 slurm system, which is not yet fully implemented. 
+Despite the pipeline, the EDNA2 framework has defined tasks which are run independently and produce their own folder structure. An independent node needs to be set up to run the tasks on. This could be improved with more automation in the future like using the inbuild EDNA2 slurm system, which is not yet fully implemented. 
 
 All input files for the specific task are defined in a json format as a design choice. All output information and parsing will be ultimately done with json files. The json files are also used to communicate between the different tasks. The json files are stored in the folder structure of the task. 
 
 <br>
 
-To submit or start the specific task the EDNA2 framework is setup each time with defining the path and activating the conda environment [file name: start_sbatch.sh]:
+To submit or start the specific task, the EDNA2 framework is setup each time with defining the path and activating the conda environment [file name: start_sbatch.sh]:
 ```
 #!/bin/bash
-EDNA2_PATH=/data/staff/biomax/user/edna2_alphafold
+EDNA2_PATH=/data/staff/biomax/user/EDNA2_alphafold
 . /home/user/Miniconda3/bin/activate
-conda activate edna2       
+conda activate EDNA2       
 export EDNA2_SITE=MAXIV_BIOMAX
 export PATH=${EDNA2_PATH}/bin:$PATH
 export PYTHONPATH=${EDNA2_PATH}/src
@@ -332,9 +286,9 @@ The slurm batch script is setup as following for the AlphaFold prediction task [
 
 #SBATCH --exclusive
 
-source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask/start_sbatch.sh
-cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask
-python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/AlphaFoldTask/AlphaFold_exec_test.py
+source /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/AlphaFoldTask/start_sbatch.sh
+cd  /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/AlphaFoldTask
+python /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/AlphaFoldTask/AlphaFold_exec_test.py
 ```
 
 #### 2.2 Run the processing task
@@ -360,9 +314,9 @@ The slurm batch script is setup as following for the process predicted model tas
 
 #SBATCH --exclusive
 
-source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks/start_sbatch.sh
-cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks
-python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/PhenixTasks/ProcPredTask_exec_test.py
+source /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/PhenixTasks/start_sbatch.sh
+cd  /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/PhenixTasks
+python /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/PhenixTasks/ProcPredTask_exec_test.py
 
 ```
 
@@ -388,9 +342,9 @@ The slurm batch script is setup as following for the dimple task [file name: dim
 
 #SBATCH --exclusive
 
-source /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/start_sbatch.sh
-cd  /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks
-python /data/staff/biomax/user/edna2_alphafold/tests/test_tasks/CCP4Tasks/DimpleTask_exec_test.py
+source /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/CCP4Tasks/start_sbatch.sh
+cd  /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/CCP4Tasks
+python /data/staff/biomax/user/EDNA2_alphafold/tests/test_tasks/CCP4Tasks/DimpleTask_exec_test.py
 ```
 
 The actual test tasks is then run like following:
@@ -399,7 +353,7 @@ sbatch [alf_/ppm_/dim_]sbatch.sh
 ```
 ## Utilsplots for visualisation
 ### Requirements
-Results from the standalone or edna2 implemented pipeline.
+Results from the standalone or EDNA2 implemented pipeline.
 
 #### Python packages
 The environment uses Python >=3.8. The following packages are used in the plotting scripts:
